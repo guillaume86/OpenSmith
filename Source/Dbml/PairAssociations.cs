@@ -17,11 +17,6 @@ public static partial class Dbml
                                           Association otherSide)
         {
             MatchLevel noMatch = MatchLevel.NoMatch;
-            if (((thisSide.IsForeignKey == true) && (otherSide.IsForeignKey != true)) ||
-                ((thisSide.IsForeignKey != true) && (otherSide.IsForeignKey == true)))
-            {
-                noMatch = noMatch;
-            }
             if (thisSideType.Name == otherSide.Type)
             {
                 noMatch |= MatchLevel.ThisTypeAgrees;
