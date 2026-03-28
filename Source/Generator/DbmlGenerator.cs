@@ -741,6 +741,7 @@ public class DbmlGenerator
             return prefix;
 
         prefix = association.ThisKey.Replace(association.OtherKey, "");
+        prefix = prefix.Replace(",", "");
         prefix = prefix.Replace(primaryClass, "");
         prefix = prefix.Replace(foreignClass, "");
         prefix = CleanIdRegex.Replace(prefix, "");
