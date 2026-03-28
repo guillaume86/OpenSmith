@@ -212,6 +212,21 @@ public class SqlServerFixture : IAsyncLifetime
             RETURN 0;
         END;
         GO
+
+        -- Procedure with multiple result sets
+        CREATE PROCEDURE [dbo].[GetCustomerWithOrders]
+            @CustomerId INT
+        AS
+        BEGIN
+            SELECT [CustomerId], [FirstName], [LastName]
+            FROM [dbo].[Customer]
+            WHERE [CustomerId] = @CustomerId;
+
+            SELECT o.[OrderId], o.[OrderDate], o.[Total]
+            FROM [Sales].[Order] o
+            WHERE o.[CustomerId] = @CustomerId;
+        END;
+        GO
         """;
 }
 

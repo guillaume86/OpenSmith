@@ -479,10 +479,10 @@ public class SqlSchemaProviderTests
     [Fact]
     public void Commands_ReturnsAllCommands()
     {
-        // 3 original procs + 2 new procs (SearchCustomers, IncrementBalance)
-        // + 1 scalar function + 1 table-valued function = 7
+        // 3 original procs + 3 new procs (SearchCustomers, IncrementBalance, GetCustomerWithOrders)
+        // + 1 scalar function + 1 table-valued function = 8
         // Diagram procs (sp_alterdiagram, fn_diagramobjects) are excluded
-        Assert.Equal(7, _schema.Commands.Count);
+        Assert.Equal(8, _schema.Commands.Count);
     }
 
     [Theory]
@@ -528,7 +528,8 @@ public class SqlSchemaProviderTests
     {
         var cmd = _schema.Commands.First(c => c.Name == "GetCustomerCount");
         var outputParam = cmd.Parameters.First(p => p.Name == "@Count");
-        Assert.Equal(System.Data.ParameterDirection.Output, outputParam.Direction);
+        // SQL Server OUTPUT params are always bidirectional (InputOutput)
+        Assert.Equal(System.Data.ParameterDirection.InputOutput, outputParam.Direction);
     }
 
     [Fact]
@@ -784,6 +785,43 @@ public class SqlSchemaProviderTests
     public void Commands_ExcludeDiagramFunctions()
     {
         Assert.DoesNotContain(_schema.Commands, c => c.Name == "fn_diagramobjects");
+    }
+
+    // Phase 14: Multiple result sets
+    [Fact]
+    public void GetCustomerWithOrders_HasTwoResultSets()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerWithOrders");
+        Assert.Equal(2, cmd.CommandResults.Count);
+    }
+
+    [Fact]
+    public void GetCustomerWithOrders_FirstResult_HasCustomerColumns()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerWithOrders");
+        var result = cmd.CommandResults[0];
+        Assert.Contains(result.Columns, c => c.Name == "CustomerId");
+        Assert.Contains(result.Columns, c => c.Name == "FirstName");
+        Assert.Contains(result.Columns, c => c.Name == "LastName");
+    }
+
+    [Fact]
+    public void GetCustomerWithOrders_SecondResult_HasOrderColumns()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerWithOrders");
+        var result = cmd.CommandResults[1];
+        Assert.Contains(result.Columns, c => c.Name == "OrderId");
+        Assert.Contains(result.Columns, c => c.Name == "OrderDate");
+        Assert.Contains(result.Columns, c => c.Name == "Total");
+    }
+
+    // Phase 15: Output parameter direction
+    [Fact]
+    public void IncrementBalance_Amount_IsInputOutput()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "IncrementBalance");
+        var param = cmd.Parameters.First(p => p.Name == "@Amount");
+        Assert.Equal(System.Data.ParameterDirection.InputOutput, param.Direction);
     }
 
     // Helper
