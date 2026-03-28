@@ -1,271 +1,183 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.CodeDom.Compiler;
-using System.Diagnostics;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Xml.Serialization;
-using System.IO;
-using System.Linq;
 
-namespace LinqToSqlShared.Generator.DbmlEnum
+namespace LinqToSqlShared.Generator.DbmlEnum;
+
+[GeneratedCode("xsd", "2.0.50727.3038")]
+[Serializable]
+[DebuggerStepThrough]
+[DesignerCategory("code")]
+[XmlType(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
+[XmlRoot("Database", Namespace = "http://tempuri.org/DbmlEnum.xsd", IsNullable = false)]
+public class Database
 {
-    [GeneratedCodeAttribute("xsd", "2.0.50727.3038")]
-    [SerializableAttribute()]
-    [DebuggerStepThroughAttribute()]
-    [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
-    [XmlRootAttribute("Database", Namespace = "http://tempuri.org/DbmlEnum.xsd", IsNullable = false)]
-    public class Database
+    private List<Enum> _enums = null;
+    private string _name;
+
+    public static Database DeserializeFromFile(string fileName)
     {
-        public static Database DeserializeFromFile(string fileName)
+        Database db = null;
+
+        if (File.Exists(fileName))
         {
-            Database db = null;
-
-            if (File.Exists(fileName))
-            {
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Open))
-                {
-                    XmlSerializer serializer = new XmlSerializer(typeof(Database));
-                    db = (Database)serializer.Deserialize(fileStream);
-                }
-            }
-
-            return db;
-        }
-        public void SerializeToFile(string fileName)
-        {
-            this.Sort();
-
-            using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(Database));
-                serializer.Serialize(fileStream, this);
-            }
+            using var fileStream = new FileStream(fileName, FileMode.Open);
+            var serializer = new XmlSerializer(typeof(Database));
+            db = (Database)serializer.Deserialize(fileStream);
         }
 
-        public void Sort()
-        {
-            Enums = Enums.OrderBy(e => e.Name).ToList();
-
-            foreach (Enum enumerator in Enums)
-                enumerator.Sort();
-        }
-
-        [XmlElementAttribute("Enum")]
-        public List<Enum> Enums
-        {
-            get
-            {
-                if (_enums == null)
-                    _enums = new List<Enum>();
-                return _enums;
-            }
-            set
-            {
-                _enums = value;
-            }
-        }
-        private List<Enum> _enums = null;
-
-        [XmlAttributeAttribute()]
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-            set
-            {
-                _name = value;
-            }
-        }
-        private string _name;
-    }
-    
-    [GeneratedCodeAttribute("xsd", "2.0.50727.3038")]
-    [SerializableAttribute()]
-    [DebuggerStepThroughAttribute()]
-    [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
-    public class Enum
-    {
-        public void Sort()
-        {
-            Items = Items.OrderBy(v => v.Value).ToList();
-        }
-
-        [XmlElementAttribute("Item")]
-        public List<Item> Items
-        {
-            get
-            {
-                if (_items == null)
-                    _items = new List<Item>();
-                return _items;
-            }
-            set
-            {
-                _items = value;
-            }
-        }
-        private List<Item> _items = null;
-
-        [XmlAttributeAttribute()]
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-            set
-            {
-                _name = value;
-            }
-        }
-        private string _name;
-
-        [XmlAttributeAttribute()]
-        public string Table
-        {
-            get
-            {
-                return _table;
-            }
-            set
-            {
-                _table = value;
-            }
-        }
-        private string _table;
-
-        [XmlAttributeAttribute()]
-        public string Type
-        {
-            get
-            {
-                return _type;
-            }
-            set
-            {
-                _type = value;
-            }
-        }
-        private string _type;
-
-        [XmlAttributeAttribute()]
-        public AccessModifier AccessModifier
-        {
-            get
-            {
-                return _accessModifier;
-            }
-            set
-            {
-                _accessModifier = value;
-            }
-        }
-        private AccessModifier _accessModifier = AccessModifier.Public;
-
-        [XmlAttributeAttribute()]
-        public bool Flags
-        {
-            get
-            {
-                return _flags;
-            }
-            set
-            {
-                _flags = value;
-            }
-        }
-        private bool _flags = false;
-
-        [XmlAttributeAttribute()]
-        public bool IncludeDataContract
-        {
-            get
-            {
-                return _includeDataContract;
-            }
-            set
-            {
-                _includeDataContract = value;
-            }
-        }
-        private bool _includeDataContract = true;
+        return db;
     }
 
-    [GeneratedCodeAttribute("xsd", "2.0.50727.3038")]
-    [SerializableAttribute()]
-    [DebuggerStepThroughAttribute()]
-    [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
-    public class Item
+    public void SerializeToFile(string fileName)
     {
-        [XmlAttributeAttribute()]
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-            set
-            {
-                _name = value;
-            }
-        }
-        private string _name;
+        Sort();
 
-        [XmlAttributeAttribute()]
-        public long Value
-        {
-            get
-            {
-                return _value;
-            }
-            set
-            {
-                _value = value;
-            }
-        }
-        private long _value;
-
-        [XmlAttributeAttribute()]
-        public string Description
-        {
-            get
-            {
-                return _description;
-            }
-            set
-            {
-                _description = value;
-            }
-        }
-        private string _description;
-
-        [XmlAttributeAttribute()]
-        public bool DataContractMember
-        {
-            get
-            {
-                return _dataContractMember;
-            }
-            set
-            {
-                _dataContractMember = value;
-            }
-        }
-        private bool _dataContractMember = true;
+        using var fileStream = new FileStream(fileName, FileMode.Create);
+        var serializer = new XmlSerializer(typeof(Database));
+        serializer.Serialize(fileStream, this);
     }
 
-    [GeneratedCodeAttribute("xsd", "2.0.50727.3038")]
-    [SerializableAttribute()]
-    [XmlTypeAttribute(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
-    public enum AccessModifier
+    public void Sort()
     {
-        Public,
-        Internal
+        Enums = Enums.OrderBy(e => e.Name).ToList();
+
+        foreach (var enumerator in Enums)
+            enumerator.Sort();
     }
+
+    [XmlElement("Enum")]
+    public List<Enum> Enums
+    {
+        get => _enums ??= [];
+        set => _enums = value;
+    }
+
+    [XmlAttribute]
+    public string Name
+    {
+        get => _name;
+        set => _name = value;
+    }
+}
+
+[GeneratedCode("xsd", "2.0.50727.3038")]
+[Serializable]
+[DebuggerStepThrough]
+[DesignerCategory("code")]
+[XmlType(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
+public class Enum
+{
+    private List<Item> _items = null;
+    private string _name;
+    private string _table;
+    private string _type;
+    private AccessModifier _accessModifier = AccessModifier.Public;
+    private bool _flags;
+    private bool _includeDataContract = true;
+
+    public void Sort()
+    {
+        Items = Items.OrderBy(v => v.Value).ToList();
+    }
+
+    [XmlElement("Item")]
+    public List<Item> Items
+    {
+        get => _items ??= [];
+        set => _items = value;
+    }
+
+    [XmlAttribute]
+    public string Name
+    {
+        get => _name;
+        set => _name = value;
+    }
+
+    [XmlAttribute]
+    public string Table
+    {
+        get => _table;
+        set => _table = value;
+    }
+
+    [XmlAttribute]
+    public string Type
+    {
+        get => _type;
+        set => _type = value;
+    }
+
+    [XmlAttribute]
+    public AccessModifier AccessModifier
+    {
+        get => _accessModifier;
+        set => _accessModifier = value;
+    }
+
+    [XmlAttribute]
+    public bool Flags
+    {
+        get => _flags;
+        set => _flags = value;
+    }
+
+    [XmlAttribute]
+    public bool IncludeDataContract
+    {
+        get => _includeDataContract;
+        set => _includeDataContract = value;
+    }
+}
+
+[GeneratedCode("xsd", "2.0.50727.3038")]
+[Serializable]
+[DebuggerStepThrough]
+[DesignerCategory("code")]
+[XmlType(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
+public class Item
+{
+    private string _name;
+    private long _value;
+    private string _description;
+    private bool _dataContractMember = true;
+
+    [XmlAttribute]
+    public string Name
+    {
+        get => _name;
+        set => _name = value;
+    }
+
+    [XmlAttribute]
+    public long Value
+    {
+        get => _value;
+        set => _value = value;
+    }
+
+    [XmlAttribute]
+    public string Description
+    {
+        get => _description;
+        set => _description = value;
+    }
+
+    [XmlAttribute]
+    public bool DataContractMember
+    {
+        get => _dataContractMember;
+        set => _dataContractMember = value;
+    }
+}
+
+[GeneratedCode("xsd", "2.0.50727.3038")]
+[Serializable]
+[XmlType(Namespace = "http://tempuri.org/DbmlEnum.xsd")]
+public enum AccessModifier
+{
+    Public,
+    Internal
 }

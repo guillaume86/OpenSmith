@@ -1,48 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.ComponentModel;
-using OpenSmith.Engine;
-using System.Globalization;
-using System.Xml;
 using System.Xml.Serialization;
-using System.IO;
+using OpenSmith.Engine;
 
-namespace LinqToSqlShared.Generator
+namespace LinqToSqlShared.Generator;
+
+[Serializable, PropertySerializer(typeof(XmlPropertySerializer))]
+[TypeConverter(typeof(ExpandableObjectConverter))]
+public class NamingProperty
 {
-    [Serializable, PropertySerializer(typeof(XmlPropertySerializer))]
-    [TypeConverter(typeof(ExpandableObjectConverter))]
-    public class NamingProperty
-    {
-        public NamingProperty() { }
+    public NamingProperty() { }
 
-        private TableNamingEnum _tableNaming = TableNamingEnum.Singular;
-        [NotifyParentProperty(true), Description("Table naming convention used in the database.")]
-        public TableNamingEnum TableNaming
-        {
-            get { return _tableNaming; }
-            set { _tableNaming = value; }
-        }
+    [NotifyParentProperty(true), Description("Table naming convention used in the database.")]
+    public TableNamingEnum TableNaming { get; set; } = TableNamingEnum.Singular;
 
-        private EntityNamingEnum _entityNaming = EntityNamingEnum.Singular;
-        [NotifyParentProperty(true), Description("Desired naming naming convention to be used by generator.")]
-        public EntityNamingEnum EntityNaming
-        {
-            get { return _entityNaming; }
-            set { _entityNaming = value; }
-        }
+    [NotifyParentProperty(true), Description("Desired naming naming convention to be used by generator.")]
+    public EntityNamingEnum EntityNaming { get; set; } = EntityNamingEnum.Singular;
 
-        private AssociationNamingEnum _associationNaming = AssociationNamingEnum.ListSuffix;
-        [NotifyParentProperty(true), Description("Desired association naming convention to be used by generator.")]
-        public AssociationNamingEnum AssociationNaming
-        {
-            get { return _associationNaming; }
-            set { _associationNaming = value; }
-        }
+    [NotifyParentProperty(true), Description("Desired association naming convention to be used by generator.")]
+    public AssociationNamingEnum AssociationNaming { get; set; } = AssociationNamingEnum.ListSuffix;
 
-        public override string ToString()
-        {
-            return "(Expand to edit...)";
-        }
-    }
+    public override string ToString() => "(Expand to edit...)";
 }

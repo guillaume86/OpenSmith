@@ -1,258 +1,110 @@
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using SchemaExplorer;
 
-namespace LinqToSqlShared.Generator
+namespace LinqToSqlShared.Generator;
+
+public class GeneratorSettings
 {
-    public class GeneratorSettings
+    public string MappingFile { get; set; }
+    public string ContextNamespace { get; set; }
+    public string DataContextName { get; set; }
+    public string EntityBase { get; set; }
+    public string EntityNamespace { get; set; }
+    public bool IncludeViews { get; set; }
+    public bool IncludeFunctions { get; set; }
+    public List<Regex> IgnoreExpressions { get; } = [];
+    public List<Regex> IncludeExpressions { get; } = [];
+    public List<Regex> CleanExpressions { get; } = [];
+    public List<Regex> EnumExpressions { get; } = [];
+    public List<Regex> EnumNameExpressions { get; } = [];
+    public List<Regex> EnumDescriptionExpressions { get; } = [];
+    public List<string> UserDefinedAssociations { get; set; } = [];
+    public bool DisableRenaming { get; set; }
+
+    public bool IsIgnored(string name) =>
+        !IsRegexMatch(name, IncludeExpressions) || IsRegexMatch(name, IgnoreExpressions);
+
+    public bool IsUnsupportedDbType(IColumnSchema column) =>
+        column.NativeType.Equals("geography", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("geometry", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("hierarchyid", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsEnum(TableSchema table) =>
+        table.HasPrimaryKey
+        && table.PrimaryKey.MemberColumns.Count == 1
+        && !IsIgnored(table.FullName)
+        && IsRegexMatch(table.Name, EnumExpressions)
+        && IsEnumSystemType(table.PrimaryKey.MemberColumns[0])
+        && !string.IsNullOrEmpty(GetEnumNameColumnName(table));
+
+    private static bool IsEnumSystemType(MemberColumnSchema column) =>
+        column.NativeType.Equals("int", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("bigint", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("tinyint", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("byte", StringComparison.OrdinalIgnoreCase)
+        || column.NativeType.Equals("smallint", StringComparison.OrdinalIgnoreCase);
+
+    public string GetEnumNameColumnName(TableSchema table)
     {
-        private string mappingFile;
-        public string MappingFile
-        {
-            get { return mappingFile; }
-            set { mappingFile = value; }
-        }
+        string result = GetEnumColumnName(table, EnumNameExpressions);
 
-        private string _contextNamespace;
-        public string ContextNamespace
-        {
-            get { return _contextNamespace; }
-            set { _contextNamespace = value; }
-        }
-
-        private string _dataContextName;
-        public string DataContextName
-        {
-            get { return _dataContextName; }
-            set { _dataContextName = value; }
-        }
-
-        private string _entityBase;
-        public string EntityBase
-        {
-            get { return _entityBase; }
-            set { _entityBase = value; }
-        }
-
-        private string _entityNamespace;
-        public string EntityNamespace
-        {
-            get { return _entityNamespace; }
-            set { _entityNamespace = value; }
-        }
-
-        private bool includeViews;
-        public bool IncludeViews
-        {
-            get { return includeViews; }
-            set { includeViews = value; }
-        }
-
-        private bool includeFunctions;
-        public bool IncludeFunctions
-        {
-            get { return includeFunctions; }
-            set { includeFunctions = value; }
-        }
-
-        private List<Regex> _ignoreExpressions = new List<Regex>();
-        public List<Regex> IgnoreExpressions
-        {
-            get { return _ignoreExpressions; }
-        }
-
-        private List<Regex> _includeExpressions = new List<Regex>();
-        public List<Regex> IncludeExpressions
-        {
-            get { return _includeExpressions; }
-        }
-
-        private List<Regex> _cleanExpressions = new List<Regex>();
-        public List<Regex> CleanExpressions
-        {
-            get { return _cleanExpressions; }
-        }
-
-        private List<Regex> _enumExpressions = new List<Regex>();
-        public List<Regex> EnumExpressions
-        {
-            get { return _enumExpressions; }
-        }
-
-        private List<Regex> _enumNameExpressions = new List<Regex>();
-        public List<Regex> EnumNameExpressions
-        {
-            get { return _enumNameExpressions; }
-        }
-
-        private List<Regex> _enumDescriptionExpressions = new List<Regex>();
-        public List<Regex> EnumDescriptionExpressions
-        {
-            get { return _enumDescriptionExpressions; }
-        }
-
-        private List<string> _userDefinedAssociations = new List<string>();
-        public List<string> UserDefinedAssociations
-        {
-            get { return _userDefinedAssociations; }
-            set { _userDefinedAssociations = value; }
-        }
-
-        private bool _disableRenaming = false;
-        public bool DisableRenaming
-        {
-            get { return _disableRenaming; }
-            set { _disableRenaming = value; }
-        }
-
-        public bool IsIgnored(string name)
-        {
-            return !IsRegexMatch(name, IncludeExpressions) || IsRegexMatch(name, IgnoreExpressions);
-        }
-
-
-        public bool IsUnsupportedDbType(IColumnSchema column)
-        {
-            return column.NativeType.Equals("geography", System.StringComparison.OrdinalIgnoreCase)
-                   || column.NativeType.Equals("geometry", System.StringComparison.OrdinalIgnoreCase)
-                   || column.NativeType.Equals("hierarchyid", System.StringComparison.OrdinalIgnoreCase);
-        }
-
-        public bool IsEnum(TableSchema table)
-        {
-            // NOTE: These were reordered on 4/25/2011 by Blake. I profiled this code and noticed that the IsRegexMatch and IsIgnored is an expensive call.
-            // My goal was to check the two other clauses and see if they validate before checking the regex to save a regex call.
-            return table.HasPrimaryKey                                          // 1) Has a Primary Key...
-                && table.PrimaryKey.MemberColumns.Count == 1                    // 2) ...that is a single column...
-                && !IsIgnored(table.FullName)                                   // 3) Is not ignored.
-                && IsRegexMatch(table.Name, EnumExpressions)                    // 2) Matches the enum regex.
-                && IsEnumSystemType(table.PrimaryKey.MemberColumns[0])          // 5) ...of a number type.
-                && !string.IsNullOrEmpty(GetEnumNameColumnName(table));         // 6) Contains a column for name.
-                
-        }
-
-        private bool IsEnumSystemType(MemberColumnSchema column)
-        {
-            return column.NativeType.Equals("int", System.StringComparison.OrdinalIgnoreCase)
-                || column.NativeType.Equals("bigint", System.StringComparison.OrdinalIgnoreCase)
-                || column.NativeType.Equals("tinyint", System.StringComparison.OrdinalIgnoreCase)
-                || column.NativeType.Equals("byte", System.StringComparison.OrdinalIgnoreCase)
-                || column.NativeType.Equals("smallint", System.StringComparison.OrdinalIgnoreCase);
-        }
-
-        public string GetEnumNameColumnName(TableSchema table)
-        {
-            string result = GetEnumColumnName(table, EnumNameExpressions);
-
-            // If no Regex match found, use first column of type string.
-            if (string.IsNullOrEmpty(result))
-                foreach (ColumnSchema column in table.Columns)
-                    if (column.SystemType == typeof(string))
-                    {
-                        result = column.Name;
-                        break;
-                    }
-
-            return result;
-        }
-
-        public string GetEnumDescriptionColumnName(TableSchema table)
-        {
-            return GetEnumColumnName(table, EnumDescriptionExpressions);
-        }
-
-        private string GetEnumColumnName(TableSchema table, List<Regex> regexList)
-        {
-            string result = string.Empty;
-
+        // If no Regex match found, use first column of type string.
+        if (string.IsNullOrEmpty(result))
             foreach (ColumnSchema column in table.Columns)
-                if (IsRegexMatch(column.Name, regexList))
+                if (column.SystemType == typeof(string))
                 {
                     result = column.Name;
                     break;
                 }
 
-            return result;
-        }
+        return result;
+    }
 
-        private bool IsRegexMatch(string name, List<Regex> regexList)
-        {
-            bool isEnum = false;
+    public string GetEnumDescriptionColumnName(TableSchema table) =>
+        GetEnumColumnName(table, EnumDescriptionExpressions);
 
-            foreach (Regex regex in regexList)
-                if (regex.IsMatch(name))
-                {
-                    isEnum = true;
-                    break;
-                }
+    private static string GetEnumColumnName(TableSchema table, List<Regex> regexList)
+    {
+        string result = string.Empty;
 
-            return isEnum;
-        }
-
-        public string CleanName(string name)
-        {
-            if (CleanExpressions.Count == 0)
-                return name;
-
-            foreach (Regex regex in CleanExpressions)
+        foreach (ColumnSchema column in table.Columns)
+            if (IsRegexMatch(column.Name, regexList))
             {
-                if (regex.IsMatch(name))
-                {
-                    return regex.Replace(name, "");
-                }
+                result = column.Name;
+                break;
             }
 
-            return name;
-        }
-
-        private FrameworkEnum _framework = FrameworkEnum.v45;
-        public FrameworkEnum Framework
-        {
-            get { return _framework; }
-            set { _framework = value; }
-        }
-
-        private TableNamingEnum _tableNaming = TableNamingEnum.Singular;
-        public TableNamingEnum TableNaming
-        {
-            get { return _tableNaming; }
-            set { _tableNaming = value; }
-        }
-
-        private EntityNamingEnum _entityNaming = EntityNamingEnum.Singular;
-        public EntityNamingEnum EntityNaming
-        {
-            get { return _entityNaming; }
-            set { _entityNaming = value; }
-        }
-
-        private AssociationNamingEnum _associationNaming = AssociationNamingEnum.ListSuffix;
-        public AssociationNamingEnum AssociationNaming
-        {
-            get { return _associationNaming; }
-            set { _associationNaming = value; }
-        }
-    
-        private bool _includeDeleteOnNull = true;
-        public bool IncludeDeleteOnNull
-        {
-            get { return _includeDeleteOnNull; }
-            set { _includeDeleteOnNull = value; }
-        }
-
-        private bool _includeDataContract = true;
-        public bool IncludeDataContract
-        {
-            get { return _includeDataContract; }
-            set { _includeDataContract = value; }
-        }
-
-        private bool _generateMetaData = true;
-        public bool GenerateMetaData
-        {
-            get { return _generateMetaData; }
-            set { _generateMetaData = value; }
-        }
-
+        return result;
     }
+
+    private static bool IsRegexMatch(string name, List<Regex> regexList)
+    {
+        foreach (var regex in regexList)
+            if (regex.IsMatch(name))
+                return true;
+
+        return false;
+    }
+
+    public string CleanName(string name)
+    {
+        if (CleanExpressions.Count == 0)
+            return name;
+
+        foreach (var regex in CleanExpressions)
+        {
+            if (regex.IsMatch(name))
+                return regex.Replace(name, "");
+        }
+
+        return name;
+    }
+
+    public FrameworkEnum Framework { get; set; } = FrameworkEnum.v45;
+    public TableNamingEnum TableNaming { get; set; } = TableNamingEnum.Singular;
+    public EntityNamingEnum EntityNaming { get; set; } = EntityNamingEnum.Singular;
+    public AssociationNamingEnum AssociationNaming { get; set; } = AssociationNamingEnum.ListSuffix;
+    public bool IncludeDeleteOnNull { get; set; } = true;
+    public bool IncludeDataContract { get; set; } = true;
+    public bool GenerateMetaData { get; set; } = true;
 }
