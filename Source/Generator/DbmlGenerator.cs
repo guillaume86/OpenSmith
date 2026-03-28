@@ -1125,6 +1125,11 @@ public class DbmlGenerator
         if (parameterSchema.Database.Provider.Name != "SqlSchemaProvider")
             return parameterSchema.NativeType;
 
+        // Table-valued parameters (user-defined table types) resolve to DbType.Object;
+        // CodeSmith emits an empty DbType for these.
+        if (parameterSchema.DataType == System.Data.DbType.Object)
+            return "";
+
         var param = new SqlParameter { DbType = parameterSchema.DataType };
 
         return GetSqlTypeDeclaration(

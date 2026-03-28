@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Xml;
 using Microsoft.Data.SqlClient;
 
 namespace SchemaExplorer;
@@ -37,7 +38,7 @@ public class SqlSchemaProvider
         ["varbinary"] = (typeof(byte[]), DbType.Binary),
         ["binary"] = (typeof(byte[]), DbType.Binary),
         ["image"] = (typeof(byte[]), DbType.Binary),
-        ["xml"] = (typeof(string), DbType.Xml),
+        ["xml"] = (typeof(XmlDocument), DbType.Xml),
         ["timestamp"] = (typeof(byte[]), DbType.Binary),
         ["rowversion"] = (typeof(byte[]), DbType.Binary),
         ["sql_variant"] = (typeof(object), DbType.Object),
@@ -531,6 +532,8 @@ public class SqlSchemaProvider
     private static void LoadCommands(SqlConnection connection, DatabaseSchema db)
     {
         // Load procedures and scalar functions
+        // Exclude diagram-related system objects (sp_*diagram*, fn_diagramobjects)
+        // which are user-created (is_ms_shipped=0) but are system utilities
         const string sql = """
             SELECT o.name AS ObjectName,
                    SCHEMA_NAME(o.schema_id) AS SchemaName,
@@ -538,6 +541,8 @@ public class SqlSchemaProvider
             FROM sys.objects o
             WHERE o.type IN ('P', 'FN', 'IF', 'TF')
               AND o.is_ms_shipped = 0
+              AND o.name NOT LIKE 'sp_%diagram%'
+              AND o.name NOT LIKE 'fn_%diagram%'
             ORDER BY SchemaName, ObjectName
             """;
 
@@ -587,7 +592,9 @@ public class SqlSchemaProvider
                    o.name AS ObjectName,
                    par.name AS ParameterName,
                    tp.name AS NativeType,
-                   par.max_length AS Size,
+                   CAST(CASE WHEN tp.name IN ('nchar', 'nvarchar') AND par.max_length > 0
+                        THEN par.max_length / 2
+                        ELSE par.max_length END AS smallint) AS Size,
                    par.precision AS [Precision],
                    par.scale AS Scale,
                    par.is_output AS IsOutput,
@@ -714,7 +721,11 @@ public class SqlSchemaProvider
                     var isNullable = reader["is_nullable"] is true;
                     var precision = reader["precision"] is byte p ? p : (byte)0;
                     var scale = reader["scale"] is byte s ? s : (byte)0;
-                    var size = reader["max_length"] is short sz ? sz : (short)0;
+                    var rawSize = reader["max_length"] is short sz ? sz : (short)0;
+                    // nvarchar/nchar store 2 bytes per char; halve to get character count
+                    var size = (baseType == "nvarchar" || baseType == "nchar") && rawSize > 0
+                        ? (short)(rawSize / 2)
+                        : rawSize;
 
                     columns.Add(new CommandResultColumnSchema
                     {

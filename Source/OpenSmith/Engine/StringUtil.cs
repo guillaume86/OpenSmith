@@ -13,16 +13,39 @@ public static class StringUtil
         if (value.Length == 0) return value;
 
         var words = SplitIntoWords(value);
+
+        // Check if ALL delimiter-sourced words are all-uppercase.
+        // If so, title-case them (e.g., "LINK7_AO2" → "Link7Ao2").
+        // If any delimiter word is mixed case (e.g., "Link7_AO2"), preserve all as-is.
+        bool allDelimiterWordsUpper = true;
+        foreach (var (word, fromDelimiter) in words)
+        {
+            if (fromDelimiter && word.Length > 0 && !IsAllUpper(word))
+            {
+                allDelimiterWordsUpper = false;
+                break;
+            }
+        }
+
         var sb = new StringBuilder();
-        foreach (var word in words)
+        foreach (var (word, fromDelimiter) in words)
         {
             if (word.Length == 0) continue;
             sb.Append(char.ToUpperInvariant(word[0]));
             if (word.Length > 1)
             {
-                // For single all-uppercase words (e.g., "VAT", "ID"), normalize to PascalCase.
-                // For acronyms within multi-word names (e.g., "VATId"), preserve original casing.
-                if (words.Count == 1 && IsAllUpper(word))
+                // Title-case all-uppercase words when:
+                // - It's the only word (e.g., "HELLO" → "Hello", "ID" → "Id")
+                // - It's from a delimiter split AND all delimiter words are all-uppercase
+                //   (e.g., "LINK7_AO2" → "Link7Ao2")
+                // Preserve acronyms from case-boundary splits
+                //   (e.g., "VAT" from "FiVAT" → "FiVAT")
+                // Preserve when delimiter words are mixed
+                //   (e.g., "AO2" from "Link7_AO2" → "Link7AO2")
+                bool shouldTitleCase = IsAllUpper(word) &&
+                    (words.Count == 1 || (fromDelimiter && allDelimiterWordsUpper));
+
+                if (shouldTitleCase)
                     sb.Append(word[1..].ToLowerInvariant());
                 else
                     sb.Append(word[1..]);
@@ -51,12 +74,13 @@ public static class StringUtil
         return pascal[..1].ToLowerInvariant() + pascal[1..];
     }
 
-    private static List<string> SplitIntoWords(string value)
+    private static List<(string word, bool fromDelimiter)> SplitIntoWords(string value)
     {
-        var words = new List<string>();
+        var words = new List<(string word, bool fromDelimiter)>();
 
         // First split on delimiters
         var parts = Regex.Split(value, @"[_\-\.\s]+");
+        bool hasDelimiters = parts.Length > 1;
 
         foreach (var part in parts)
         {
@@ -64,25 +88,31 @@ public static class StringUtil
 
             // Split camelCase/PascalCase/ACRONYM boundaries
             var sb = new StringBuilder();
+            bool isFirstWordInPart = true;
             for (int i = 0; i < part.Length; i++)
             {
                 if (i > 0 && char.IsUpper(part[i]))
                 {
+                    bool prevIsLower = char.IsLower(part[i - 1]);
                     bool prevIsUpper = char.IsUpper(part[i - 1]);
                     bool nextIsLower = i + 1 < part.Length && char.IsLower(part[i + 1]);
 
-                    // Split before uppercase if previous was lowercase
-                    // Or if previous was uppercase but next is lowercase (end of acronym)
-                    if (!prevIsUpper || (prevIsUpper && nextIsLower))
+                    // Split before uppercase if previous was lowercase (camelCase boundary)
+                    // Or if previous was uppercase but next is lowercase (end of acronym like HTMLParser → HTML|Parser)
+                    // Do NOT split when previous is a digit (e.g., C131A stays as one word)
+                    if (prevIsLower || (prevIsUpper && nextIsLower))
                     {
-                        words.Add(sb.ToString());
+                        // First word in a delimiter-split part inherits the delimiter flag;
+                        // subsequent words within a part are from case-boundary splits.
+                        words.Add((sb.ToString(), hasDelimiters && isFirstWordInPart));
                         sb.Clear();
+                        isFirstWordInPart = false;
                     }
                 }
                 sb.Append(part[i]);
             }
             if (sb.Length > 0)
-                words.Add(sb.ToString());
+                words.Add((sb.ToString(), hasDelimiters && isFirstWordInPart));
         }
 
         return words;

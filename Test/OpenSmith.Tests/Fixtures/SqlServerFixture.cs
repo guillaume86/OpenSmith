@@ -165,6 +165,53 @@ public class SqlServerFixture : IAsyncLifetime
             WHERE c.[Balance] >= @MinBalance
         );
         GO
+
+        -- XML column for type mapping test
+        ALTER TABLE [dbo].[Customer] ADD [Preferences] XML NULL;
+        GO
+
+        -- Procedure with nvarchar parameter to test size halving
+        CREATE PROCEDURE [dbo].[SearchCustomers]
+            @NameFilter NVARCHAR(100),
+            @EmailFilter NVARCHAR(255)
+        AS
+        BEGIN
+            SELECT [CustomerId], [FirstName]
+            FROM [dbo].[Customer]
+            WHERE [FirstName] LIKE @NameFilter OR [Email] LIKE @EmailFilter;
+        END;
+        GO
+
+        -- Procedure with InputOutput parameter
+        CREATE PROCEDURE [dbo].[IncrementBalance]
+            @CustomerId INT,
+            @Amount DECIMAL(18,2) OUTPUT
+        AS
+        BEGIN
+            UPDATE [dbo].[Customer] SET [Balance] = [Balance] + @Amount WHERE [CustomerId] = @CustomerId;
+            SELECT @Amount = [Balance] FROM [dbo].[Customer] WHERE [CustomerId] = @CustomerId;
+        END;
+        GO
+
+        -- Diagram system procs (simulated - these exist in real DBs with sysdiagrams)
+        CREATE PROCEDURE [dbo].[sp_alterdiagram]
+            @diagramname SYSNAME,
+            @owner_id INT,
+            @version INT,
+            @definition VARBINARY(MAX)
+        AS
+        BEGIN
+            RETURN 0;
+        END;
+        GO
+
+        CREATE FUNCTION [dbo].[fn_diagramobjects]()
+        RETURNS INT
+        AS
+        BEGIN
+            RETURN 0;
+        END;
+        GO
         """;
 }
 

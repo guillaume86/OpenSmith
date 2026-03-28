@@ -79,7 +79,7 @@ public class SqlSchemaProviderTests
     public void Customer_HasExpectedColumnCount()
     {
         var table = _schema.Tables.First(t => t.Name == "Customer");
-        Assert.Equal(9, table.Columns.Count);
+        Assert.Equal(10, table.Columns.Count); // 9 original + Preferences XML
     }
 
     [Theory]
@@ -479,8 +479,10 @@ public class SqlSchemaProviderTests
     [Fact]
     public void Commands_ReturnsAllCommands()
     {
-        // 3 procedures + 1 scalar function + 1 table-valued function = 5
-        Assert.Equal(5, _schema.Commands.Count);
+        // 3 original procs + 2 new procs (SearchCustomers, IncrementBalance)
+        // + 1 scalar function + 1 table-valued function = 7
+        // Diagram procs (sp_alterdiagram, fn_diagramobjects) are excluded
+        Assert.Equal(7, _schema.Commands.Count);
     }
 
     [Theory]
@@ -737,6 +739,51 @@ public class SqlSchemaProviderTests
         var table = _schema.Tables.First(t => t.Name == "Customer");
         Assert.True(table.PrimaryKey.MemberColumns.Contains("CustomerId"));
         Assert.False(table.PrimaryKey.MemberColumns.Contains("NonExistent"));
+    }
+
+    // Phase 11: XML type mapping
+    [Fact]
+    public void Customer_Preferences_HasXmlNativeType()
+    {
+        var column = GetCustomerColumn("Preferences");
+        Assert.Equal("xml", column.NativeType);
+    }
+
+    [Fact]
+    public void Customer_Preferences_XmlMapsToXmlDocument()
+    {
+        var column = GetCustomerColumn("Preferences");
+        Assert.Equal(typeof(System.Xml.XmlDocument), column.SystemType);
+    }
+
+    // Phase 12: nvarchar parameter size halving
+    [Fact]
+    public void SearchCustomers_NameFilter_HasCorrectSize()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "SearchCustomers");
+        var param = cmd.Parameters.First(p => p.Name == "@NameFilter");
+        Assert.Equal(100, param.Size); // nvarchar(100) should be 100, not 200
+    }
+
+    [Fact]
+    public void SearchCustomers_EmailFilter_HasCorrectSize()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "SearchCustomers");
+        var param = cmd.Parameters.First(p => p.Name == "@EmailFilter");
+        Assert.Equal(255, param.Size); // nvarchar(255) should be 255, not 510
+    }
+
+    // Phase 13: Diagram SP filtering
+    [Fact]
+    public void Commands_ExcludeDiagramProcedures()
+    {
+        Assert.DoesNotContain(_schema.Commands, c => c.Name == "sp_alterdiagram");
+    }
+
+    [Fact]
+    public void Commands_ExcludeDiagramFunctions()
+    {
+        Assert.DoesNotContain(_schema.Commands, c => c.Name == "fn_diagramobjects");
     }
 
     // Helper

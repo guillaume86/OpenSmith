@@ -26,6 +26,12 @@ public class StringUtilTests
         [InlineData("VATId", "VATId")]
         [InlineData("CompletedHRTasks", "CompletedHRTasks")]
         [InlineData("fn_HrProcedures", "FnHrProcedures")]
+        [InlineData("LINK7_AO2_MAATR_LPB_CD", "Link7Ao2MaatrLpbCd")]
+        [InlineData("AO2_AANWERV_RDGV_DT", "Ao2AanwervRdgvDt")]
+        [InlineData("C131A", "C131a")]
+        [InlineData("Link7_AO2_MOBIL_VERG_FL", "Link7AO2MOBILVERGFL")]
+        [InlineData("GS_ContractHourTypeId", "GSContractHourTypeId")]
+        [InlineData("PE_CalculatedManagerOpinion", "PECalculatedManagerOpinion")]
         [InlineData("Vw_HrCarHist", "VwHrCarHist")]
         [InlineData("dbo.TableName", "DboTableName")]
         public void ConvertsToPascalCase(string input, string expected)
