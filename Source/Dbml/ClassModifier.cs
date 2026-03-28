@@ -1,8 +1,7 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum ClassModifier
 {
-    public enum ClassModifier
-    {
-        Sealed,
-        Abstract
-    }
+    Sealed,
+    Abstract
 }

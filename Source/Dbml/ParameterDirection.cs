@@ -1,9 +1,8 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum ParameterDirection
 {
-    public enum ParameterDirection
-    {
-        In,
-        Out,
-        InOut
-    }
+    In,
+    Out,
+    InOut
 }

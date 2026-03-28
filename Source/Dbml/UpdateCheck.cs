@@ -1,9 +1,8 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum UpdateCheck
 {
-    public enum UpdateCheck
-    {
-        Always,
-        Never,
-        WhenChanged
-    }
+    Always,
+    Never,
+    WhenChanged
 }

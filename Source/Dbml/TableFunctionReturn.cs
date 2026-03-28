@@ -1,7 +1,6 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public class TableFunctionReturn : Node
 {
-    public class TableFunctionReturn : Node
-    {
-        public string Member { get; set; }
-    }
+    public string Member { get; set; }
 }

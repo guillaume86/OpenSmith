@@ -1,9 +1,8 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum ConnectionMode
 {
-    public enum ConnectionMode
-    {
-        ConnectionString,
-        AppSettings,
-        WebSettings
-    }
+    ConnectionString,
+    AppSettings,
+    WebSettings
 }

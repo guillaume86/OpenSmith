@@ -1,10 +1,9 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum MemberModifier
 {
-    public enum MemberModifier
-    {
-        Virtual,
-        Override,
-        New,
-        NewVirtual
-    }
+    Virtual,
+    Override,
+    New,
+    NewVirtual
 }

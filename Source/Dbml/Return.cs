@@ -1,31 +1,30 @@
-namespace LinqToSqlShared.DbmlObjectModel
-{
-    public class Return : Node
-    {
-        private string type;
+namespace LinqToSqlShared.DbmlObjectModel;
 
-        public Return(string type)
+public class Return : Node
+{
+    private string type;
+
+    public Return(string type)
+    {
+        if (type == null)
         {
-            if (type == null)
+            throw Error.SchemaRequirementViolation("Return", "Type");
+        }
+        this.type = type;
+    }
+
+    public string DbType { get; set; }
+
+    public string Type
+    {
+        get => type;
+        set
+        {
+            if (value == null)
             {
                 throw Error.SchemaRequirementViolation("Return", "Type");
             }
-            this.type = type;
-        }
-
-        public string DbType { get; set; }
-
-        public string Type
-        {
-            get { return type; }
-            set
-            {
-                if (value == null)
-                {
-                    throw Error.SchemaRequirementViolation("Return", "Type");
-                }
-                type = value;
-            }
+            type = value;
         }
     }
 }

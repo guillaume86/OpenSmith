@@ -1,11 +1,10 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum AutoSync
 {
-    public enum AutoSync
-    {
-        Default,
-        Always,
-        Never,
-        OnInsert,
-        OnUpdate
-    }
+    Default,
+    Always,
+    Never,
+    OnInsert,
+    OnUpdate
 }

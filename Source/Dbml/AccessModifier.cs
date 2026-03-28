@@ -1,11 +1,10 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum AccessModifier
 {
-    public enum AccessModifier
-    {
-        Public,
-        Internal,
-        Protected,
-        ProtectedInternal,
-        Private
-    }
+    Public,
+    Internal,
+    Protected,
+    ProtectedInternal,
+    Private
 }

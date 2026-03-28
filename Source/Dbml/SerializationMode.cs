@@ -1,8 +1,7 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum SerializationMode
 {
-    public enum SerializationMode
-    {
-        None,
-        Unidirectional
-    }
+    None,
+    Unidirectional
 }

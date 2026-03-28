@@ -1,37 +1,32 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public static partial class Dbml
 {
-    public static partial class Dbml
+    private class VerifyDbml : DbmlVisitor
     {
-        #region Nested type: VerifyDbml
+        private readonly Dictionary<string, Type> dbTypes = new Dictionary<string, Type>();
+        private readonly string message;
 
-        private class VerifyDbml : DbmlVisitor
+        public VerifyDbml(string message)
         {
-            private readonly Dictionary<string, Type> dbTypes = new Dictionary<string, Type>();
-            private readonly string message;
-
-            public VerifyDbml(string message)
-            {
-                this.message = message;
-            }
-
-            public override Type VisitType(Type type)
-            {
-                Type t;
-                if (dbTypes.TryGetValue(type.Name, out t))
-                {
-                    if (t != type)
-                        throw Error.Bug(" (" + message + "): Type with name " + type.Name +
-                                        " has multiple Type instances in DBML.");
-                }
-                else
-                    dbTypes.Add(type.Name, type);
-
-                return base.VisitType(type);
-            }
+            this.message = message;
         }
 
-        #endregion
+        public override Type VisitType(Type type)
+        {
+            Type t;
+            if (dbTypes.TryGetValue(type.Name, out t))
+            {
+                if (t != type)
+                    throw Error.Bug(" (" + message + "): Type with name " + type.Name +
+                                    " has multiple Type instances in DBML.");
+            }
+            else
+                dbTypes.Add(type.Name, type);
+
+            return base.VisitType(type);
+        }
     }
 }

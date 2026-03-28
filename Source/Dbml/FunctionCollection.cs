@@ -1,14 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+[Serializable]
+public class FunctionCollection : KeyedCollection<string, Function>
 {
-    [Serializable]
-    public class FunctionCollection : KeyedCollection<string, Function>
-    {
-        protected override string GetKeyForItem(Function item)
-        {
-            return item.Name;
-        }
-    }
+    protected override string GetKeyForItem(Function item) => item.Name;
 }

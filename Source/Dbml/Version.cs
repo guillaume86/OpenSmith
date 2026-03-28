@@ -1,8 +1,7 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum Version
 {
-    public enum Version
-    {
-        Current,
-        Original
-    }
+    Current,
+    Original
 }

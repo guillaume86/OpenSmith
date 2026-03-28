@@ -1,8 +1,7 @@
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public enum Cardinality
 {
-    public enum Cardinality
-    {
-        One,
-        Many
-    }
+    One,
+    Many
 }

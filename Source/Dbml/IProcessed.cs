@@ -1,7 +1,6 @@
-﻿namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public interface IProcessed
 {
-    public interface IProcessed
-    {
-        bool IsProcessed { get; set; }
-    }
+    bool IsProcessed { get; set; }
 }

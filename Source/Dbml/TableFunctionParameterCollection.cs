@@ -1,16 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
-using System.Text;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+[Serializable]
+public class TableFunctionParameterCollection : KeyedCollection<string, TableFunctionParameter>
 {
-    [Serializable]
-    public class TableFunctionParameterCollection : KeyedCollection<string, TableFunctionParameter>
-    {
-        protected override string GetKeyForItem(TableFunctionParameter item)
-        {
-            return item.ParameterName;
-        }
-    }
-
+    protected override string GetKeyForItem(TableFunctionParameter item) => item.ParameterName;
 }

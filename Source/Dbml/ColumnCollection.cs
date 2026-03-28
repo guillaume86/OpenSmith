@@ -1,17 +1,12 @@
 using System;
 using System.Collections.ObjectModel;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+[Serializable]
+public class ColumnCollection : KeyedCollection<string, Column>, IProcessed
 {
-    [Serializable]
-    public class ColumnCollection : KeyedCollection<string, Column>, IProcessed
-    {
-        protected override string GetKeyForItem(Column item)
-        {
-            return item.Name;
-        }
+    protected override string GetKeyForItem(Column item) => item.Name;
 
-        public bool IsProcessed { get; set; }
-
-    }
+    public bool IsProcessed { get; set; }
 }

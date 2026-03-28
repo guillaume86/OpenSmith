@@ -1,48 +1,43 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public static partial class Dbml
 {
-    public static partial class Dbml
+    private class TypeTableLookup : DbmlVisitor
     {
-        #region Nested type: TypeTableLookup
+        private readonly Dictionary<string, Table> typeToTable = new Dictionary<string, Table>();
+        private Table currentTable;
 
-        private class TypeTableLookup : DbmlVisitor
+        public static Dictionary<string, Table> CreateLookup(Database db)
         {
-            private readonly Dictionary<string, Table> typeToTable = new Dictionary<string, Table>();
-            private Table currentTable;
-
-            public static Dictionary<string, Table> CreateLookup(Database db)
-            {
-                var lookup = new TypeTableLookup();
-                lookup.VisitDatabase(db);
-                return lookup.typeToTable;
-            }
-
-            public override Table VisitTable(Table table)
-            {
-                Table table2;
-                currentTable = table;
-                try
-                {
-                    table2 = base.VisitTable(table);
-                }
-                finally
-                {
-                    currentTable = null;
-                }
-                return table2;
-            }
-
-            public override Type VisitType(Type type)
-            {
-                if (currentTable != null)
-                {
-                    typeToTable[type.Name] = currentTable;
-                }
-                return base.VisitType(type);
-            }
+            var lookup = new TypeTableLookup();
+            lookup.VisitDatabase(db);
+            return lookup.typeToTable;
         }
 
-        #endregion
+        public override Table VisitTable(Table table)
+        {
+            Table table2;
+            currentTable = table;
+            try
+            {
+                table2 = base.VisitTable(table);
+            }
+            finally
+            {
+                currentTable = null;
+            }
+            return table2;
+        }
+
+        public override Type VisitType(Type type)
+        {
+            if (currentTable != null)
+            {
+                typeToTable[type.Name] = currentTable;
+            }
+            return base.VisitType(type);
+        }
     }
 }

@@ -1,20 +1,16 @@
 using System.Collections.Generic;
 
-namespace LinqToSqlShared.DbmlObjectModel
+namespace LinqToSqlShared.DbmlObjectModel;
+
+public class TableFunction : Node
 {
-    public class TableFunction : Node
-    {
-        private readonly TableFunctionParameterCollection arguments = new TableFunctionParameterCollection();
+    private readonly TableFunctionParameterCollection arguments = new TableFunctionParameterCollection();
 
-        public AccessModifier? AccessModifier { get; set; }
+    public AccessModifier? AccessModifier { get; set; }
 
-        public TableFunctionParameterCollection Arguments
-        {
-            get { return arguments; }
-        }
+    public TableFunctionParameterCollection Arguments => arguments;
 
-        public Function MappedFunction { get; set; }
+    public Function MappedFunction { get; set; }
 
-        public TableFunctionReturn Return { get; set; }
-    }
+    public TableFunctionReturn Return { get; set; }
 }
