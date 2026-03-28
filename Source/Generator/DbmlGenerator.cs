@@ -834,6 +834,13 @@ public class DbmlGenerator
     {
         foreach (ColumnSchema columnSchema in tableSchema.Columns)
         {
+            // skip columns matching the ignore pattern (e.g., Cm\d{10} custom columns)
+            if (Settings.IsColumnIgnored(columnSchema.Name))
+            {
+                Debug.WriteLine($"Skipping column '{columnSchema.Name}' because it matches the ignore pattern.");
+                continue;
+            }
+
             // skip unsupported type
             if (Settings.IsUnsupportedDbType(columnSchema))
             {

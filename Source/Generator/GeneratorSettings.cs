@@ -24,6 +24,9 @@ public class GeneratorSettings
     public bool IsIgnored(string name) =>
         !IsRegexMatch(name, IncludeExpressions) || IsRegexMatch(name, IgnoreExpressions);
 
+    public bool IsColumnIgnored(string columnName) =>
+        IsRegexMatch(columnName, IgnoreExpressions);
+
     public bool IsUnsupportedDbType(IColumnSchema column) =>
         column.NativeType.Equals("geography", StringComparison.OrdinalIgnoreCase)
         || column.NativeType.Equals("geometry", StringComparison.OrdinalIgnoreCase)
