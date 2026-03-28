@@ -414,6 +414,8 @@ public class DbmlGenerator
             PropertyNames[primaryTable.Type.Name].Add(primaryAssociation.Member);
         }
 
+        primaryAssociation.IsProcessed = true;
+
         if (IsTableKeySchemaCascadeDelete(tableKeySchema))
         {
             foreignAssociation.DeleteRule = "CASCADE";
@@ -421,19 +423,15 @@ public class DbmlGenerator
 
         if (settings.IncludeDeleteOnNull || foreignTable.Type.IsManyToMany())
         {
-            if (!foreignAssociation.DeleteOnNull.HasValue)
-                foreignAssociation.DeleteOnNull = IsTableDeleteOnNull(tableKeySchema);
-            if (!primaryAssociation.DeleteOnNull.HasValue)
-                primaryAssociation.DeleteOnNull = false;
+            if (!foreignAssociation.DeleteOnNull.HasValue && IsTableDeleteOnNull(tableKeySchema))
+                foreignAssociation.DeleteOnNull = true;
         }
         else
         {
             foreignAssociation.DeleteOnNull = null;
-            primaryAssociation.DeleteOnNull = null;
         }
 
         foreignAssociation.IsProcessed = true;
-        primaryAssociation.IsProcessed = true;
     }
 
     private static bool IsOneToOne(TableKeySchema tableKeySchema, Association foreignAssociation)
