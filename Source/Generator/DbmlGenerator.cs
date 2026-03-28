@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using CodeSmith.Engine;
+using OpenSmith.Engine;
 using SchemaExplorer;
 using LinqToSqlShared.DbmlObjectModel;
 using System.Linq;

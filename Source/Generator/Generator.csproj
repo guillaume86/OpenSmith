@@ -12,21 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="CodeSmith.Core">
-      <HintPath>..\..\Libraries\bin\CodeSmith.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="CodeSmith.CustomProperties">
-      <HintPath>..\..\Libraries\AddIns\CodeSmith.CustomProperties.dll</HintPath>
-    </Reference>
-    <Reference Include="CodeSmith.Engine">
-      <HintPath>..\..\Libraries\bin\CodeSmith.Engine.dll</HintPath>
-    </Reference>
-    <Reference Include="SchemaExplorer">
-      <HintPath>..\..\Libraries\AddIns\SchemaExplorer.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\OpenSmith\OpenSmith.csproj" />
     <ProjectReference Include="..\Dbml\Dbml.csproj" />
   </ItemGroup>
 

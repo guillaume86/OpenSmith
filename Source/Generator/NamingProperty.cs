@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.ComponentModel;
-using CodeSmith.Engine;
+using OpenSmith.Engine;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Serialization;

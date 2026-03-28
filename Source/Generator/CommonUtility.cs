@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using CodeSmith.Engine;
+using OpenSmith.Engine;
 using System.Text.RegularExpressions;
 
 namespace LinqToSqlShared.Generator
