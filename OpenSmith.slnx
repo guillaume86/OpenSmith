@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Source/">
+    <Project Path="Source/OpenSmith/OpenSmith.csproj" />
+    <Project Path="Source/Dbml/Dbml.csproj" />
+    <Project Path="Source/Generator/Generator.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
+  </Folder>
+</Solution>
