@@ -143,6 +143,7 @@ public class TemplateCodeGenerator
             sb.AppendLine("    public override string RenderToString()");
             sb.AppendLine("    {");
             sb.AppendLine("        var __sb = new StringBuilder();");
+            sb.AppendLine("        Response.SetOutput(__sb);");
 
             foreach (var node in template.Nodes)
             {
@@ -160,7 +161,7 @@ public class TemplateCodeGenerator
                 }
             }
 
-            sb.AppendLine("        return __sb.ToString();");
+            sb.AppendLine("        return __sb.ToString().TrimEnd('\\r', '\\n');");
             sb.AppendLine("    }");
         }
 

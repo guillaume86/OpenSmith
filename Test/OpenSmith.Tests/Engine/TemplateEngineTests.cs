@@ -76,6 +76,76 @@ public class TemplateEngineTests
         }
 
         [Fact]
+        public void StandaloneCodeLine_DoesNotProduceLeadingNewline()
+        {
+            // A standalone code-only line should not inject a newline into the following text
+            var cst = "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n<% if (true) { %>\r\nHello\r\n<% } %>\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // The text node containing "Hello" should NOT start with \r\n
+            var helloNode = parsed.Nodes.OfType<TextNode>().Single();
+            Assert.True(helloNode.Text.StartsWith("Hello"),
+                $"Expected TextNode to start with 'Hello' but got: '{helloNode.Text.Replace("\r", "\\r").Replace("\n", "\\n")}'");
+        }
+
+        [Fact]
+        public void StandaloneCodeLines_NoBlankLineBetweenCodeBlocks()
+        {
+            // Two consecutive standalone code lines should not produce any whitespace TextNode between them
+            var cst = "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\nBefore\r\n<% code1(); %>\r\n<% code2(); %>\r\nAfter\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            var textNodes = parsed.Nodes.OfType<TextNode>().ToList();
+            // Should only have "Before\r\n" and "After\r\n" — no whitespace-only TextNodes
+            foreach (var tn in textNodes)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(tn.Text),
+                    $"Found whitespace-only TextNode: '{tn.Text.Replace("\r", "\\r").Replace("\n", "\\n")}'");
+            }
+        }
+
+        [Fact]
+        public void LeadingDirectiveWhitespace_IsStripped()
+        {
+            // Directives at the top should not leave leading blank lines
+            var cst = "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n<%@ Property Name=\"X\" Type=\"System.String\" Optional=\"True\" %>\r\n<%@ Import Namespace=\"System\" %>\r\nHello World\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            Assert.Single(parsed.Nodes);
+            var text = Assert.IsType<TextNode>(parsed.Nodes[0]);
+            Assert.StartsWith("Hello", text.Text.TrimStart());
+            // Should NOT have leading newlines
+            Assert.False(text.Text.StartsWith("\r") || text.Text.StartsWith("\n"),
+                $"TextNode has leading newlines: '{text.Text.Replace("\r", "\\r").Replace("\n", "\\n")}'");
+        }
+
+        [Fact]
+        public void MixedContentLine_PreservesWhitespace()
+        {
+            // A line with text + expression should preserve leading whitespace
+            // Use a code block first so the expression line is NOT the first node
+            var cst = "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\nBefore\r\n    <%= Name %> World\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // Should have: TextNode("Before\r\n    "), ExpressionNode, TextNode(" World\r\n")
+            var textNodes = parsed.Nodes.OfType<TextNode>().ToList();
+            Assert.Contains(textNodes, t => t.Text.Contains("    "));
+        }
+
+        [Fact]
+        public void ExpressionLine_NotTreatedAsStandalone()
+        {
+            // A line with only an expression should preserve surrounding whitespace
+            // Use a preceding text line so expression line isn't first
+            var cst = "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\nBefore\r\n  <%= Name %>\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // Should have TextNode with "  " before the expression
+            var textNodes = parsed.Nodes.OfType<TextNode>().ToList();
+            Assert.Contains(textNodes, t => t.Text.Contains("  "));
+        }
+
+        [Fact]
         public void ParsesScriptBlock()
         {
             var cst = """
@@ -223,6 +293,33 @@ public class TemplateEngineTests
 
             Assert.Equal(2, template.Response.Lines.Count);
             Assert.Equal("hello", template.Response.Lines[0]);
+        }
+
+        [Fact]
+        public void Response_WriteFeedsIntoRenderOutput()
+        {
+            // When Response is connected to a StringBuilder (as in RenderToString),
+            // Write/WriteLine should append to that output
+            var sb = new System.Text.StringBuilder();
+            var template = new TestTemplate();
+            template.Response.SetOutput(sb);
+
+            template.Response.Write("hello");
+            template.Response.WriteLine("world");
+
+            Assert.Equal("helloworld\r\n", sb.ToString());
+        }
+
+        [Fact]
+        public void Response_WriteLineFormatsCorrectly()
+        {
+            var sb = new System.Text.StringBuilder();
+            var template = new TestTemplate();
+            template.Response.SetOutput(sb);
+
+            template.Response.WriteLine("{0} = {1}", "key", "value");
+
+            Assert.Equal("key = value\r\n", sb.ToString());
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OpenSmith.Engine;
@@ -39,10 +40,80 @@ public static class CstParser
             return "";
         });
 
+        // Strip standalone code lines and leading blank lines before parsing body
+        content = StripStandaloneCodeLines(content);
+        content = content.TrimStart();
+
         // Parse remaining content into text/code/expression nodes
         ParseBody(result, content);
 
+        // Post-process: strip newlines injected by code blocks (including multi-line ones)
+        StripCodeBlockNewlines(result.Nodes);
+
         return result;
+    }
+
+    /// <summary>
+    /// After parsing, strip the leading newline from TextNodes that follow multi-line CodeBlockNodes.
+    /// Single-line code blocks are already handled by StripStandaloneCodeLines.
+    /// Multi-line code blocks (where the code spans multiple lines) leave a trailing newline
+    /// after the closing %&gt; that should be consumed.
+    /// </summary>
+    private static void StripCodeBlockNewlines(List<TemplateNode> nodes)
+    {
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            if (nodes[i] is not CodeBlockNode code)
+                continue;
+
+            // Only strip after multi-line code blocks (code contains newlines)
+            if (!code.Code.Contains('\n'))
+                continue;
+
+            // Strip leading \r\n from following TextNode
+            if (i + 1 < nodes.Count && nodes[i + 1] is TextNode nextText)
+            {
+                var t = nextText.Text;
+                if (t.StartsWith("\r\n"))
+                    nodes[i + 1] = new TextNode(t[2..]);
+                else if (t.StartsWith("\n"))
+                    nodes[i + 1] = new TextNode(t[1..]);
+            }
+        }
+
+        // Remove empty TextNodes
+        nodes.RemoveAll(n => n is TextNode t && t.Text.Length == 0);
+    }
+
+    // Regex to detect lines that contain ONLY code blocks <% ... %> (not expression blocks <%= ... %>) and whitespace
+    private static readonly Regex StandaloneCodeLineRegex = new(
+        @"^[ \t]*(?:<%(?!=).*?%>[ \t]*)+$",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// Removes trailing newlines from lines that contain only code blocks and whitespace.
+    /// This prevents standalone code lines (like &lt;% if (x) { %&gt;) from injecting blank lines.
+    /// </summary>
+    internal static string StripStandaloneCodeLines(string content)
+    {
+        var lines = content.Split('\n');
+        var sb = new StringBuilder(content.Length);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i].TrimEnd('\r');
+            if (StandaloneCodeLineRegex.IsMatch(line))
+            {
+                // Emit only the code block markers without surrounding whitespace/newline
+                sb.Append(line.Trim());
+            }
+            else
+            {
+                sb.Append(lines[i]);
+                if (i < lines.Length - 1)
+                    sb.Append('\n');
+            }
+        }
+        return sb.ToString();
     }
 
     private static void ParseDirective(ParsedTemplate result, string type, string attributes)

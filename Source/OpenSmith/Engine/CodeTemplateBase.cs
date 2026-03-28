@@ -84,10 +84,21 @@ public abstract class CodeTemplateBase
 
     /// <summary>
     /// Renders the template output to a file with a parent file dependency.
+    /// Generated files use this overload; a trailing newline is ensured.
     /// </summary>
     public void RenderToFile(string fileName, string parentFileName, bool overwrite)
     {
-        RenderToFile(fileName, overwrite);
+        if (!overwrite && File.Exists(fileName))
+            return;
+
+        var dir = Path.GetDirectoryName(fileName);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+
+        var content = RenderToString();
+        if (!content.EndsWith("\n"))
+            content += "\r\n";
+        File.WriteAllText(fileName, content);
     }
 
     /// <summary>
@@ -127,11 +138,33 @@ public class ProgressInfo
 
 public class ResponseWriter
 {
+    private System.Text.StringBuilder _output;
     public List<string> Lines { get; } = new();
 
-    public void Write(string text) => Lines.Add(text);
-    public void WriteLine(string text) => Lines.Add(text);
-    public void WriteLine(string format, params object[] args) => Lines.Add(string.Format(format, args));
+    /// <summary>
+    /// Connects this ResponseWriter to a StringBuilder so that Write/WriteLine
+    /// output is appended to the template's render output (like CodeSmith's Response).
+    /// </summary>
+    public void SetOutput(System.Text.StringBuilder sb) => _output = sb;
+
+    public void Write(string text)
+    {
+        Lines.Add(text);
+        _output?.Append(text);
+    }
+
+    public void WriteLine(string text)
+    {
+        Lines.Add(text);
+        _output?.AppendLine(text);
+    }
+
+    public void WriteLine(string format, params object[] args)
+    {
+        var formatted = string.Format(format, args);
+        Lines.Add(formatted);
+        _output?.AppendLine(formatted);
+    }
 }
 
 public class DebugWriter
