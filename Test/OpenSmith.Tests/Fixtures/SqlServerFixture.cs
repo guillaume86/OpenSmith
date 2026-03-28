@@ -155,6 +155,16 @@ public class SqlServerFixture : IAsyncLifetime
             RETURN (SELECT [Balance] FROM [dbo].[Customer] WHERE [CustomerId] = @CustomerId);
         END;
         GO
+
+        CREATE FUNCTION [dbo].[GetCustomerSummary](@MinBalance DECIMAL(18,2))
+        RETURNS TABLE
+        AS
+        RETURN (
+            SELECT c.[CustomerId], c.[FirstName], c.[Balance]
+            FROM [dbo].[Customer] c
+            WHERE c.[Balance] >= @MinBalance
+        );
+        GO
         """;
 }
 

@@ -48,9 +48,14 @@ public class SqlSchemaProvider
         using var connection = new SqlConnection(connectionString);
         connection.Open();
 
+        // Use DB_NAME() to get the actual database name as stored in sys.databases,
+        // rather than connection.Database which returns the Initial Catalog value from the connection string
+        var dbName = new SqlCommand("SELECT DB_NAME()", connection).ExecuteScalar()?.ToString()
+            ?? connection.Database;
+
         var db = new DatabaseSchema
         {
-            Name = connection.Database,
+            Name = dbName,
             ConnectionString = connectionString,
             Provider = new DatabaseProvider { Name = "SqlSchemaProvider" }
         };
@@ -109,7 +114,9 @@ public class SqlSchemaProvider
                    t.name AS TableName,
                    c.name AS ColumnName,
                    tp.name AS NativeType,
-                   c.max_length AS Size,
+                   CAST(CASE WHEN tp.name IN ('nchar', 'nvarchar') AND c.max_length > 0
+                        THEN c.max_length / 2
+                        ELSE c.max_length END AS smallint) AS Size,
                    c.precision AS [Precision],
                    c.scale AS Scale,
                    c.is_nullable AS AllowDBNull
@@ -477,7 +484,9 @@ public class SqlSchemaProvider
                    v.name AS ViewName,
                    c.name AS ColumnName,
                    tp.name AS NativeType,
-                   c.max_length AS Size,
+                   CAST(CASE WHEN tp.name IN ('nchar', 'nvarchar') AND c.max_length > 0
+                        THEN c.max_length / 2
+                        ELSE c.max_length END AS smallint) AS Size,
                    c.precision AS [Precision],
                    c.scale AS Scale,
                    c.is_nullable AS AllowDBNull
@@ -666,8 +675,26 @@ public class SqlSchemaProvider
 
             try
             {
-                var escapedName = command.FullName.Replace("'", "''");
-                var sql = $"EXEC sp_describe_first_result_set @tsql = N'EXEC [{command.FullName.Replace(".", "].[")}]', @params = NULL, @browse_information_mode = 0";
+                // Table-valued functions (IF, TF) need SELECT * FROM syntax;
+                // stored procedures use EXEC syntax
+                var isTableValuedFunction = commandTypes.TryGetValue(command.FullName, out var tvfType)
+                    && (tvfType == "IF" || tvfType == "TF");
+
+                string tsql;
+                if (isTableValuedFunction)
+                {
+                    // Build DEFAULT placeholders for each parameter
+                    var defaults = string.Join(", ", command.Parameters
+                        .Where(p => p.Name != "@RETURN_VALUE")
+                        .Select(_ => "DEFAULT"));
+                    tsql = $"SELECT * FROM [{command.FullName.Replace(".", "].[")}]({defaults})";
+                }
+                else
+                {
+                    tsql = $"EXEC [{command.FullName.Replace(".", "].[")}]";
+                }
+
+                var sql = $"EXEC sp_describe_first_result_set @tsql = N'{tsql.Replace("'", "''")}', @params = NULL, @browse_information_mode = 0";
 
                 using var cmd = new SqlCommand(sql, connection);
                 using var reader = cmd.ExecuteReader();

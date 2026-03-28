@@ -19,7 +19,14 @@ public static class StringUtil
             if (word.Length == 0) continue;
             sb.Append(char.ToUpperInvariant(word[0]));
             if (word.Length > 1)
-                sb.Append(word[1..].ToLowerInvariant());
+            {
+                // For single all-uppercase words (e.g., "VAT", "ID"), normalize to PascalCase.
+                // For acronyms within multi-word names (e.g., "VATId"), preserve original casing.
+                if (words.Count == 1 && IsAllUpper(word))
+                    sb.Append(word[1..].ToLowerInvariant());
+                else
+                    sb.Append(word[1..]);
+            }
         }
         return sb.ToString();
     }
@@ -79,6 +86,14 @@ public static class StringUtil
         }
 
         return words;
+    }
+
+    private static bool IsAllUpper(string word)
+    {
+        foreach (var c in word)
+            if (char.IsLetter(c) && !char.IsUpper(c))
+                return false;
+        return true;
     }
 
     #region Pluralization

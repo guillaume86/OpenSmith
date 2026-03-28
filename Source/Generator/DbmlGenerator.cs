@@ -173,6 +173,9 @@ public class DbmlGenerator
             && string.IsNullOrEmpty(Database.Connection.ConnectionString))
             Database.Connection.Mode = ConnectionMode.AppSettings;
 
+        if (!Database.Connection.Mode.HasValue)
+            Database.Connection.Mode = ConnectionMode.ConnectionString;
+
         if (string.IsNullOrEmpty(Database.Connection.SettingsObjectName))
             Database.Connection.SettingsObjectName = "Properties.Settings";
 
@@ -334,7 +337,7 @@ public class DbmlGenerator
         string primaryClass = primaryTable.Type.Name;
         string foreignClass = foreignTable.Type.Name;
 
-        string name = $"{primaryClass}_{foreignClass}";
+        string name = tableKeySchema.Name;
         name = MakeUnique(AssociationNames, name);
 
         string foreignMembers = GetKeyMembers(foreignTable,
@@ -418,11 +421,16 @@ public class DbmlGenerator
 
         if (settings.IncludeDeleteOnNull || foreignTable.Type.IsManyToMany())
         {
-            if (!foreignAssociation.DeleteOnNull.HasValue && IsTableDeleteOnNull(tableKeySchema))
-                foreignAssociation.DeleteOnNull = true;
+            if (!foreignAssociation.DeleteOnNull.HasValue)
+                foreignAssociation.DeleteOnNull = IsTableDeleteOnNull(tableKeySchema);
+            if (!primaryAssociation.DeleteOnNull.HasValue)
+                primaryAssociation.DeleteOnNull = false;
         }
         else
+        {
             foreignAssociation.DeleteOnNull = null;
+            primaryAssociation.DeleteOnNull = null;
+        }
 
         foreignAssociation.IsProcessed = true;
         primaryAssociation.IsProcessed = true;

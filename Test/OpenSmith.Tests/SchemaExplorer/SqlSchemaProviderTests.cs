@@ -122,7 +122,7 @@ public class SqlSchemaProviderTests
     public void Customer_FirstName_HasCorrectSize()
     {
         var column = GetCustomerColumn("FirstName");
-        Assert.Equal(200, column.Size); // nvarchar(100) = 200 bytes
+        Assert.Equal(100, column.Size); // nvarchar(100) = 100 characters
     }
 
     [Theory]
@@ -479,8 +479,8 @@ public class SqlSchemaProviderTests
     [Fact]
     public void Commands_ReturnsAllCommands()
     {
-        // 3 procedures + 1 scalar function = 4
-        Assert.Equal(4, _schema.Commands.Count);
+        // 3 procedures + 1 scalar function + 1 table-valued function = 5
+        Assert.Equal(5, _schema.Commands.Count);
     }
 
     [Theory]
@@ -604,6 +604,32 @@ public class SqlSchemaProviderTests
         var cmd = _schema.Commands.First(c => c.Name == "GetCustomerOrders");
         Assert.True(cmd.ExtendedProperties.Contains("CS_IsScalarFunction"));
         Assert.Equal("false", cmd.ExtendedProperties["CS_IsScalarFunction"].Value.ToString());
+    }
+
+    [Fact]
+    public void GetCustomerSummary_IsTableValuedFunction()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerSummary");
+        Assert.True(cmd.ExtendedProperties.Contains("CS_IsTableValuedFunction"));
+        Assert.Equal("true", cmd.ExtendedProperties["CS_IsTableValuedFunction"].Value.ToString());
+    }
+
+    [Fact]
+    public void GetCustomerSummary_HasCommandResults()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerSummary");
+        Assert.Single(cmd.CommandResults);
+        Assert.Equal(3, cmd.CommandResults[0].Columns.Count);
+    }
+
+    [Fact]
+    public void GetCustomerSummary_ResultColumns_HaveCorrectNames()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerSummary");
+        var result = cmd.CommandResults[0];
+        Assert.Contains(result.Columns, c => c.Name == "CustomerId");
+        Assert.Contains(result.Columns, c => c.Name == "FirstName");
+        Assert.Contains(result.Columns, c => c.Name == "Balance");
     }
 
     [Fact]
