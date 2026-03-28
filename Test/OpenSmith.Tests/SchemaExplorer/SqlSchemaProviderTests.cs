@@ -479,10 +479,10 @@ public class SqlSchemaProviderTests
     [Fact]
     public void Commands_ReturnsAllCommands()
     {
-        // 3 original procs + 3 new procs (SearchCustomers, IncrementBalance, GetCustomerWithOrders)
-        // + 1 scalar function + 1 table-valued function = 8
+        // 3 original procs + 4 new procs (SearchCustomers, IncrementBalance, GetCustomerWithOrders, GetCustomerReport)
+        // + 1 scalar function + 1 table-valued function = 9
         // Diagram procs (sp_alterdiagram, fn_diagramobjects) are excluded
-        Assert.Equal(8, _schema.Commands.Count);
+        Assert.Equal(9, _schema.Commands.Count);
     }
 
     [Theory]
@@ -813,6 +813,32 @@ public class SqlSchemaProviderTests
         Assert.Contains(result.Columns, c => c.Name == "OrderId");
         Assert.Contains(result.Columns, c => c.Name == "OrderDate");
         Assert.Contains(result.Columns, c => c.Name == "Total");
+    }
+
+    // Phase 14b: Temp-table proc result sets (transactional fallback)
+    [Fact]
+    public void GetCustomerReport_HasTwoResultSets()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerReport");
+        Assert.Equal(2, cmd.CommandResults.Count);
+    }
+
+    [Fact]
+    public void GetCustomerReport_FirstResult_HasExpectedColumns()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerReport");
+        var result = cmd.CommandResults[0];
+        Assert.Contains(result.Columns, c => c.Name == "CustomerId");
+        Assert.Contains(result.Columns, c => c.Name == "FirstName");
+        Assert.Contains(result.Columns, c => c.Name == "Balance");
+    }
+
+    [Fact]
+    public void GetCustomerReport_SecondResult_HasCountColumn()
+    {
+        var cmd = _schema.Commands.First(c => c.Name == "GetCustomerReport");
+        var result = cmd.CommandResults[1];
+        Assert.Contains(result.Columns, c => c.Name == "TotalCount");
     }
 
     // Phase 15: Output parameter direction

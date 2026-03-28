@@ -680,27 +680,27 @@ public class SqlSchemaProvider
             if (commandTypes.TryGetValue(command.FullName, out var objType) && objType == "FN")
                 continue;
 
+            // Table-valued functions (IF, TF) need SELECT * FROM syntax;
+            // stored procedures use EXEC syntax
+            var isTableValuedFunction = commandTypes.TryGetValue(command.FullName, out var tvfType)
+                && (tvfType == "IF" || tvfType == "TF");
+
+            // Strategy 1: CommandBehavior.SchemaOnly (fast, supports multiple result sets)
             try
             {
-                // Table-valued functions (IF, TF) need SELECT * FROM syntax;
-                // stored procedures use EXEC syntax
-                var isTableValuedFunction = commandTypes.TryGetValue(command.FullName, out var tvfType)
-                    && (tvfType == "IF" || tvfType == "TF");
-
-                // Use CommandBehavior.SchemaOnly to get result set metadata without executing.
-                // Unlike sp_describe_first_result_set, this supports multiple result sets
-                // via SqlDataReader.NextResult().
                 LoadCommandResultsViaSchemaOnly(connection, command, isTableValuedFunction);
-
-                // If SchemaOnly returned nothing (e.g., proc uses dynamic SQL or computed SELECTs),
-                // fall back to sp_describe_first_result_set which handles more edge cases.
-                if (command.CommandResults.Count == 0)
-                    LoadCommandResultsViaDescribe(connection, command, isTableValuedFunction);
             }
-            catch
+            catch { /* SchemaOnly can fail for dynamic SQL, computed SELECTs, etc. */ }
+
+            // Strategy 2: Transactional execution with ROLLBACK (handles temp tables,
+            // dynamic SQL, and other edge cases by actually running the proc)
+            if (command.CommandResults.Count == 0)
             {
-                // FMTONLY can fail for dynamic SQL, temp tables, etc.
-                // In that case, CommandResults remains empty.
+                try
+                {
+                    LoadCommandResultsViaTransaction(connection, command, isTableValuedFunction);
+                }
+                catch { /* Transactional can also fail; CommandResults stays empty. */ }
             }
         }
     }
@@ -732,6 +732,45 @@ public class SqlSchemaProvider
         }
 
         using var reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly);
+        ReadResultSetsFromReader(reader, command);
+    }
+
+    /// <summary>
+    /// Fallback: actually executes the proc with NULL params inside a transaction that
+    /// gets rolled back. This handles temp tables, dynamic SQL, and other edge cases
+    /// that SchemaOnly cannot resolve. Matches the CodeSmith transactional strategy.
+    /// </summary>
+    private static void LoadCommandResultsViaTransaction(SqlConnection connection,
+        CommandSchema command, bool isTableValuedFunction)
+    {
+        // Build: BEGIN TRANSACTION; EXEC [schema].[proc] NULL, DEFAULT, ...; ROLLBACK TRANSACTION
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("BEGIN TRANSACTION");
+        sb.AppendFormat("EXEC [{0}]", command.FullName.Replace(".", "].["));
+        sb.AppendLine();
+
+        var inputParams = command.Parameters
+            .Where(p => p.Direction != ParameterDirection.ReturnValue)
+            .ToList();
+        for (int i = 0; i < inputParams.Count; i++)
+        {
+            var isTableType = inputParams[i].DataType == System.Data.DbType.Object;
+            sb.Append(isTableType ? "\tDEFAULT" : "\tNULL");
+            if (i < inputParams.Count - 1)
+                sb.Append(',');
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("ROLLBACK TRANSACTION");
+
+        using var cmd = new SqlCommand(sb.ToString(), connection);
+        using var reader = cmd.ExecuteReader();
+
+        ReadResultSetsFromReader(reader, command);
+    }
+
+    private static void ReadResultSetsFromReader(SqlDataReader reader, CommandSchema command)
+    {
         do
         {
             var schemaTable = reader.GetSchemaTable();
@@ -773,67 +812,6 @@ public class SqlSchemaProvider
             if (result.Columns.Count > 0)
                 command.CommandResults.Add(result);
         } while (reader.NextResult());
-    }
-
-    private static void LoadCommandResultsViaDescribe(SqlConnection connection,
-        CommandSchema command, bool isTableValuedFunction)
-    {
-        string tsql;
-        if (isTableValuedFunction)
-        {
-            var defaults = string.Join(", ", command.Parameters
-                .Where(p => p.Direction != ParameterDirection.ReturnValue)
-                .Select(_ => "DEFAULT"));
-            tsql = $"SELECT * FROM [{command.FullName.Replace(".", "].[")}]({defaults})";
-        }
-        else
-        {
-            tsql = $"EXEC [{command.FullName.Replace(".", "].[")}]";
-        }
-
-        var sql = $"EXEC sp_describe_first_result_set @tsql = N'{tsql.Replace("'", "''")}', @params = NULL, @browse_information_mode = 0";
-
-        using var cmd = new SqlCommand(sql, connection);
-        using var reader = cmd.ExecuteReader();
-
-        var result = new CommandResultSchema();
-        int unnamedIndex = 0;
-        while (reader.Read())
-        {
-            var columnName = reader["name"]?.ToString();
-            // Unnamed columns (e.g., SELECT @var) get synthetic names like "Column1"
-            if (string.IsNullOrEmpty(columnName))
-                columnName = $"Column{++unnamedIndex}";
-
-            var nativeType = reader["system_type_name"]?.ToString() ?? "";
-            var baseType = nativeType.Split('(')[0].Trim();
-            var resolved = ResolveType(baseType);
-
-            var isNullable = reader["is_nullable"] is true;
-            var precision = reader["precision"] is byte p ? p : (byte)0;
-            var scale = reader["scale"] is byte s ? s : (byte)0;
-            var rawSize = reader["max_length"] is short sz ? sz : (short)0;
-            var size = (baseType == "nvarchar" || baseType == "nchar") && rawSize > 0
-                ? (short)(rawSize / 2)
-                : rawSize;
-
-            result.Columns.Add(new CommandResultColumnSchema
-            {
-                Name = columnName,
-                FullName = $"{command.FullName}.{columnName}",
-                Database = command.Database,
-                NativeType = baseType,
-                SystemType = resolved.SystemType,
-                DataType = resolved.DbType,
-                AllowDBNull = isNullable,
-                Precision = precision,
-                Scale = scale,
-                Size = size
-            });
-        }
-
-        if (result.Columns.Count > 0)
-            command.CommandResults.Add(result);
     }
 
     private static (Type SystemType, DbType DbType) ResolveType(string nativeType)

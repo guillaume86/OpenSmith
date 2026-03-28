@@ -227,6 +227,32 @@ public class SqlServerFixture : IAsyncLifetime
             WHERE o.[CustomerId] = @CustomerId;
         END;
         GO
+
+        -- Procedure using temp tables (tests transactional fallback)
+        CREATE PROCEDURE [dbo].[GetCustomerReport]
+            @MinBalance DECIMAL(18,2)
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+
+            CREATE TABLE #Eligible (
+                CustomerId INT NOT NULL,
+                FirstName NVARCHAR(100) NOT NULL,
+                Balance DECIMAL(18,2) NOT NULL
+            );
+
+            INSERT INTO #Eligible
+            SELECT [CustomerId], [FirstName], [Balance]
+            FROM [dbo].[Customer]
+            WHERE [Balance] >= @MinBalance;
+
+            SELECT * FROM #Eligible;
+
+            SELECT COUNT(*) AS TotalCount FROM #Eligible;
+
+            DROP TABLE #Eligible;
+        END;
+        GO
         """;
 }
 
