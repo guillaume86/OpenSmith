@@ -763,55 +763,58 @@ public class DbmlGenerator
         string name = string.Empty;
         isEnum = false;
         wasEnum = false;
-
-        if (dataObject is not ColumnSchema columnSchema || !columnSchema.IsForeignKeyMember)
-            return name;
-
-        foreach (TableKeySchema tableKeySchema in columnSchema.Table.ForeignKeys)
-        {
-            // find columns ...
-            ColumnSchema primaryColumn = null;
-            for (int i = 0; i < tableKeySchema.ForeignKeyMemberColumns.Count; i++)
-            {
-                if (tableKeySchema.ForeignKeyMemberColumns[i].Column != columnSchema)
-                    continue;
-
-                primaryColumn = tableKeySchema.PrimaryKeyMemberColumns[i].Column;
-                break;
-            }
-
-            if (primaryColumn == null)
-                continue;
-
-            // Is Enum
-            var primaryKeyTable = tableKeySchema.PrimaryKeyTable;
-
-            if (Settings.IsEnum(primaryKeyTable))
-            {
-                name = GetEnum(primaryKeyTable).Name;
-                isEnum = true;
-            }
-
-            // Was Enum
-            var existingEnum = _existingEnumDatabase.Enums
-                .FirstOrDefault(e => e.Table == primaryKeyTable.FullName);
-
-            if (existingEnum != null)
-            {
-                if (string.IsNullOrEmpty(name))
-                    name = existingEnum.Name;
-                wasEnum = true;
-            }
-
-            if (isEnum || wasEnum)
-                break;
-
-            // find column in pktable, if that is fkey too, check that parent.
-            if (primaryColumn.IsForeignKeyMember && primaryColumn != dataObject)
-                return IsOrWasEnumAssociation(primaryColumn, out isEnum, out wasEnum);
-        }
-
+        
+        // !HACK: Workaround for StackOverflowException
         return name;
+
+        // if (dataObject is not ColumnSchema columnSchema || !columnSchema.IsForeignKeyMember)
+        //     return name;
+
+        // foreach (TableKeySchema tableKeySchema in columnSchema.Table.ForeignKeys)
+        // {
+        //     // find columns ...
+        //     ColumnSchema primaryColumn = null;
+        //     for (int i = 0; i < tableKeySchema.ForeignKeyMemberColumns.Count; i++)
+        //     {
+        //         if (tableKeySchema.ForeignKeyMemberColumns[i].Column != columnSchema)
+        //             continue;
+
+        //         primaryColumn = tableKeySchema.PrimaryKeyMemberColumns[i].Column;
+        //         break;
+        //     }
+
+        //     if (primaryColumn == null)
+        //         continue;
+
+        //     // Is Enum
+        //     var primaryKeyTable = tableKeySchema.PrimaryKeyTable;
+
+        //     if (Settings.IsEnum(primaryKeyTable))
+        //     {
+        //         name = GetEnum(primaryKeyTable).Name;
+        //         isEnum = true;
+        //     }
+
+        //     // Was Enum
+        //     var existingEnum = _existingEnumDatabase.Enums
+        //         .FirstOrDefault(e => e.Table == primaryKeyTable.FullName);
+
+        //     if (existingEnum != null)
+        //     {
+        //         if (string.IsNullOrEmpty(name))
+        //             name = existingEnum.Name;
+        //         wasEnum = true;
+        //     }
+
+        //     if (isEnum || wasEnum)
+        //         break;
+
+        //     // find column in pktable, if that is fkey too, check that parent.
+        //     if (primaryColumn.IsForeignKeyMember && primaryColumn != dataObject)
+        //         return IsOrWasEnumAssociation(primaryColumn, out isEnum, out wasEnum);
+        // }
+
+        // return name;
     }
 
     private bool IsEnumAssociation(DataObjectBase columnSchema, out string typeName)
