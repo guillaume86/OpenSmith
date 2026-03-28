@@ -248,4 +248,4 @@ health/
 .claude/*.local.*
 
 # DiffTest
-DiffTest/
+DiffTest*
