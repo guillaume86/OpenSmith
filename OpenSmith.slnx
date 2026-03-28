@@ -3,8 +3,10 @@
     <Project Path="Source/OpenSmith/OpenSmith.csproj" />
     <Project Path="Source/Dbml/Dbml.csproj" />
     <Project Path="Source/Generator/Generator.csproj" />
+    <Project Path="Source/OpenSmith.Cli/OpenSmith.Cli.csproj" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
+    <Project Path="Test/OpenSmith.Cli.Tests/OpenSmith.Cli.Tests.csproj" />
   </Folder>
 </Solution>
