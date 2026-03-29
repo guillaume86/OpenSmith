@@ -123,12 +123,12 @@ echo "  Package added."
 echo "  Building to trigger template copy..."
 dotnet build > /dev/null 2>&1
 
-if [ -d "Templates/Plinqo" ]; then
-    TEMPLATE_COUNT=$(find Templates/Plinqo -name "*.cst" | wc -l)
-    echo "  Templates/Plinqo/ found with $TEMPLATE_COUNT .cst files."
-    TPL_PATH="Templates/Plinqo"
+if [ -d "Templates/OpenSmith.Plinqo" ]; then
+    TEMPLATE_COUNT=$(find Templates/OpenSmith.Plinqo -name "*.cst" | wc -l)
+    echo "  Templates/OpenSmith.Plinqo/ found with $TEMPLATE_COUNT .cst files."
+    TPL_PATH="Templates/OpenSmith.Plinqo"
 else
-    echo "  ERROR: Templates/Plinqo/ not found after build."
+    echo "  ERROR: Templates/OpenSmith.Plinqo/ not found after build."
     echo "  .targets file did not copy templates."
     exit 1
 fi

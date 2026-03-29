@@ -6,8 +6,6 @@
     and renamed to build/$(PackageId).targets so NuGet auto-imports it.
 
     $(MSBuildThisFileName) resolves to the package ID at consumer-import-time.
-    All target/item names are suffixed with the package ID to avoid collisions
-    when a consumer installs multiple template packages.
   -->
 
   <PropertyGroup>
@@ -18,19 +16,19 @@
     <_OpenSmithSampleCspDestination>$(MSBuildProjectDirectory)\Sample-Generator.csp</_OpenSmithSampleCspDestination>
   </PropertyGroup>
 
-  <Target Name="_OpenSmithCopyTemplates_$(MSBuildThisFileName)"
+  <Target Name="_OpenSmithCopyTemplates"
           BeforeTargets="BeforeBuild"
           Condition="!Exists('$(_OpenSmithTemplateDestination)')">
 
     <Message Importance="high" Text="$(MSBuildThisFileName): Copying templates to $(_OpenSmithTemplateDestination)" />
 
     <ItemGroup>
-      <_OpenSmithTemplateFiles_$(MSBuildThisFileName) Include="$(_OpenSmithTemplateSource)**\*"
-                                                      Exclude="$(_OpenSmithSampleCspSource)" />
+      <_OpenSmithTemplateFiles Include="$(_OpenSmithTemplateSource)**\*"
+                               Exclude="$(_OpenSmithSampleCspSource)" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(_OpenSmithTemplateFiles_$(MSBuildThisFileName))"
-          DestinationFiles="@(_OpenSmithTemplateFiles_$(MSBuildThisFileName)->'$(_OpenSmithTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
+    <Copy SourceFiles="@(_OpenSmithTemplateFiles)"
+          DestinationFiles="@(_OpenSmithTemplateFiles->'$(_OpenSmithTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
 
     <!-- Write manifest so the CLI can discover the source NuGet package. -->
@@ -48,7 +46,7 @@
       Overwrite="true" />
   </Target>
 
-  <Target Name="_OpenSmithCopySampleCsp_$(MSBuildThisFileName)"
+  <Target Name="_OpenSmithCopySampleCsp"
           BeforeTargets="BeforeBuild"
           Condition="Exists('$(_OpenSmithSampleCspSource)') AND !Exists('$(_OpenSmithSampleCspDestination)')">
 
