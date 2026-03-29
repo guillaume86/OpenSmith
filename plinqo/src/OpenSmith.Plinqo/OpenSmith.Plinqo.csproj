@@ -14,17 +14,15 @@
     <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
   </ItemGroup>
 
-  <!-- Include templates as content files that get copied to consuming projects -->
+  <!-- Pack templates + targets into the NuGet package -->
   <ItemGroup>
-    <Content Include="Templates\**\*.cst" PackagePath="contentFiles\any\any\Templates\Plinqo\" BuildAction="None" CopyToOutput="false" />
-    <Content Include="Templates\**\*.cs" PackagePath="contentFiles\any\any\Templates\Plinqo\" BuildAction="None" CopyToOutput="false" />
-    <Content Include="Templates\Sample-Generator.csp" PackagePath="contentFiles\any\any\" BuildAction="None" CopyToOutput="false" />
+    <None Include="Templates\**\*" Pack="true" PackagePath="templates\" />
+    <None Include="build\OpenSmith.Plinqo.targets" Pack="true" PackagePath="build\" />
   </ItemGroup>
 
   <!-- Exclude template files from compilation -->
   <ItemGroup>
     <Compile Remove="Templates\**" />
-    <None Include="Templates\**" />
   </ItemGroup>
 
 </Project>

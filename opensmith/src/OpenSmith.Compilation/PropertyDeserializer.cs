@@ -130,7 +130,14 @@ public static class PropertyDeserializer
         if (method == null)
             throw new InvalidOperationException($"Provider type '{typeName}' does not have a GetDatabaseSchema(string) method.");
 
-        return method.Invoke(instance, [connectionString]);
+        try
+        {
+            return method.Invoke(instance, [connectionString]);
+        }
+        catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)
+        {
+            throw ex.InnerException;
+        }
     }
 
     private static string ResolveVariables(string text, Dictionary<string, string> variables)

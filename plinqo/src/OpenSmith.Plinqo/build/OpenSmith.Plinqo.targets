@@ -1,0 +1,35 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Copies PLINQO templates into the consuming project on first restore/build.
+    Files are only copied if they don't already exist, so consumer edits are preserved.
+  -->
+
+  <PropertyGroup>
+    <PlinqoTemplateSource>$(MSBuildThisFileDirectory)..\templates\</PlinqoTemplateSource>
+    <PlinqoTemplateDestination>$(MSBuildProjectDirectory)\Templates\Plinqo\</PlinqoTemplateDestination>
+    <PlinqoSampleCspDestination>$(MSBuildProjectDirectory)\Sample-Generator.csp</PlinqoSampleCspDestination>
+  </PropertyGroup>
+
+  <Target Name="_CopyPlinqoTemplates" BeforeTargets="BeforeBuild" Condition="!Exists('$(PlinqoTemplateDestination)')">
+    <Message Importance="high" Text="OpenSmith.Plinqo: Copying templates to $(PlinqoTemplateDestination)" />
+
+    <ItemGroup>
+      <_PlinqoTemplateFiles Include="$(PlinqoTemplateSource)**\*.cst" />
+      <_PlinqoTemplateFiles Include="$(PlinqoTemplateSource)**\*.cs" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_PlinqoTemplateFiles)"
+          DestinationFiles="@(_PlinqoTemplateFiles->'$(PlinqoTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="_CopyPlinqoSampleCsp" BeforeTargets="BeforeBuild" Condition="!Exists('$(PlinqoSampleCspDestination)')">
+    <Message Importance="high" Text="OpenSmith.Plinqo: Copying sample CSP to $(PlinqoSampleCspDestination)" />
+
+    <Copy SourceFiles="$(PlinqoTemplateSource)Sample-Generator.csp"
+          DestinationFiles="$(PlinqoSampleCspDestination)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
