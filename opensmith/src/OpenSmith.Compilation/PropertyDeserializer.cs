@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Xml.Linq;
 using System.Xml.Serialization;
 using OpenSmith.Engine;
@@ -11,6 +12,13 @@ namespace OpenSmith.Compilation;
 /// </summary>
 public static class PropertyDeserializer
 {
+    private static AssemblyLoadContext? _loadContext;
+
+    /// <summary>
+    /// Sets the AssemblyLoadContext used to resolve provider assemblies at runtime.
+    /// </summary>
+    public static void SetLoadContext(AssemblyLoadContext alc) => _loadContext = alc;
+
     public static void SetProperties(
         CodeTemplateBase template,
         Dictionary<string, CspProperty> cspProperties,
@@ -113,7 +121,7 @@ public static class PropertyDeserializer
         var parts = providerTypeString.Split(',', 2, StringSplitOptions.TrimEntries);
         var typeName = parts[0];
 
-        // Try to find the type in loaded assemblies
+        // Try to find the type in already-loaded assemblies
         Type? providerType = null;
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -122,16 +130,16 @@ public static class PropertyDeserializer
             if (providerType != null) break;
         }
 
-        // If not found, try loading the assembly from the application directory
-        if (providerType == null && parts.Length > 1)
+        // If not found, load the assembly via the template ALC (which resolves from the publish directory)
+        if (providerType == null && parts.Length > 1 && _loadContext != null)
         {
             var assemblyName = parts[1];
-            var assemblyPath = Path.Combine(AppContext.BaseDirectory, assemblyName + ".dll");
-            if (File.Exists(assemblyPath))
+            try
             {
-                var loaded = Assembly.LoadFrom(assemblyPath);
+                var loaded = _loadContext.LoadFromAssemblyName(new AssemblyName(assemblyName));
                 providerType = loaded.GetType(typeName);
             }
+            catch (FileNotFoundException) { }
         }
 
         if (providerType == null)

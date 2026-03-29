@@ -16,9 +16,17 @@ public class TemplateCompilationCache
         Directory.CreateDirectory(_cacheDir);
     }
 
-    public string ComputeHash(Dictionary<string, string> sources)
+    public string ComputeHash(Dictionary<string, string> sources, string? publishFingerprint = null)
     {
         using var sha = SHA256.Create();
+
+        // Mix in the publish fingerprint so dependency changes invalidate cached template DLLs
+        if (publishFingerprint != null)
+        {
+            var fpBytes = Encoding.UTF8.GetBytes(publishFingerprint);
+            sha.TransformBlock(fpBytes, 0, fpBytes.Length, null, 0);
+        }
+
         foreach (var (key, value) in sources.OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {
             sha.TransformBlock(Encoding.UTF8.GetBytes(key), 0, Encoding.UTF8.GetByteCount(key), null, 0);

@@ -11,31 +11,32 @@ namespace OpenSmith.Compilation;
 public class TemplateCompiler
 {
     private readonly List<MetadataReference> _references;
-    private readonly List<string> _probePaths;
 
     /// <summary>
-    /// Creates a compiler that resolves the given assembly names (from template directives)
-    /// in addition to standard runtime and OpenSmith assemblies.
+    /// Creates a compiler with only runtime framework references (no additional dependencies).
     /// </summary>
-    /// <param name="assemblyNames">Assembly names from template directives.</param>
-    /// <param name="probePaths">Additional directories to scan for assemblies (e.g. consumer project build output).</param>
-    public TemplateCompiler(IEnumerable<string>? assemblyNames = null, IEnumerable<string>? probePaths = null)
+    public TemplateCompiler() : this("") { }
+
+    /// <summary>
+    /// Creates a compiler that resolves MetadataReferences from the publish output directory.
+    /// </summary>
+    /// <param name="publishDirectory">Flat directory produced by DependencyPublisher containing all dependency DLLs.</param>
+    public TemplateCompiler(string publishDirectory)
     {
-        _probePaths = [AppContext.BaseDirectory, .. probePaths ?? []];
-        _references = BuildMetadataReferences(assemblyNames ?? [], _probePaths);
+        _references = BuildMetadataReferences(publishDirectory);
     }
 
     /// <summary>
     /// Compiles the given C# source strings into an assembly and returns a map of class name to Type.
     /// When a cache is provided, attempts to load a previously compiled assembly before invoking Roslyn.
     /// </summary>
-    public Dictionary<string, Type> Compile(Dictionary<string, string> sources, TemplateCompilationCache? cache = null)
+    public Dictionary<string, Type> Compile(Dictionary<string, string> sources, TemplateCompilationCache? cache = null, string? publishFingerprint = null)
     {
         // Try cache first
         string? hash = null;
         if (cache != null)
         {
-            hash = cache.ComputeHash(sources);
+            hash = cache.ComputeHash(sources, publishFingerprint);
             if (cache.TryLoadCached(hash, out var cachedBytes))
             {
                 CacheHit = true;
@@ -115,82 +116,53 @@ public class TemplateCompiler
         return sourceContent;
     }
 
-    private static List<MetadataReference> BuildMetadataReferences(
-        IEnumerable<string> assemblyNames, IEnumerable<string> probePaths)
+    private static List<MetadataReference> BuildMetadataReferences(string publishDirectory)
     {
         var refs = new List<MetadataReference>();
         var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        void AddRef(string path)
+        void TryAddManagedRef(string path)
         {
-            if (File.Exists(path) && addedPaths.Add(path))
-                refs.Add(MetadataReference.CreateFromFile(path));
+            if (!addedPaths.Add(path)) return;
+            if (!IsManagedAssembly(path)) return;
+            refs.Add(MetadataReference.CreateFromFile(path));
         }
 
-        // Add runtime assemblies
+        // Add all runtime framework assemblies
         var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-        foreach (var dll in new[]
-        {
-            "System.Runtime.dll",
-            "System.Collections.dll",
-            "System.Linq.dll",
-            "System.Console.dll",
-            "System.IO.dll",
-            "System.Text.RegularExpressions.dll",
-            "System.ComponentModel.dll",
-            "System.ComponentModel.Primitives.dll",
-            "System.ComponentModel.TypeConverter.dll",
-            "System.ComponentModel.DataAnnotations.dll",
-            "System.ComponentModel.Annotations.dll",
-            "System.Xml.ReaderWriter.dll",
-            "System.Xml.XmlSerializer.dll",
-            "System.Private.Xml.dll",
-            "System.Private.Xml.Linq.dll",
-            "System.Xml.Linq.dll",
-            "System.ObjectModel.dll",
-            "System.Diagnostics.Debug.dll",
-            "System.Runtime.Extensions.dll",
-            "netstandard.dll",
-            "System.Runtime.Serialization.Primitives.dll",
-        })
-        {
-            AddRef(Path.Combine(runtimeDir, dll));
-        }
+        foreach (var dll in Directory.GetFiles(runtimeDir, "*.dll"))
+            TryAddManagedRef(dll);
 
-        // mscorlib / System.Private.CoreLib
-        AddRef(typeof(object).Assembly.Location);
-
-        // Always include OpenSmith engine
-        var requestedNames = new HashSet<string>(assemblyNames, StringComparer.OrdinalIgnoreCase) { "OpenSmith" };
-
-        // Resolve requested assemblies from loaded assemblies
+        // Add host assemblies (e.g., OpenSmith.dll) so templates can reference CodeTemplateBase
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
         {
-            if (asm.IsDynamic || string.IsNullOrEmpty(asm.Location))
-                continue;
-
-            var asmName = asm.GetName().Name;
-            if (asmName != null && requestedNames.Contains(asmName))
-                AddRef(asm.Location);
+            if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                TryAddManagedRef(asm.Location);
         }
 
-        // Scan the application base directory for assemblies not yet loaded
-        var appDir = AppContext.BaseDirectory;
-        foreach (var name in requestedNames)
+        // Add all DLLs from the publish directory (template package + NuGet deps)
+        if (!string.IsNullOrEmpty(publishDirectory) && Directory.Exists(publishDirectory))
         {
-            AddRef(Path.Combine(appDir, name + ".dll"));
-        }
-
-        // Scan additional probe directories (e.g. consumer project build output)
-        foreach (var dir in probePaths)
-        {
-            foreach (var name in requestedNames)
-            {
-                AddRef(Path.Combine(dir, name + ".dll"));
-            }
+            foreach (var dll in Directory.GetFiles(publishDirectory, "*.dll"))
+                TryAddManagedRef(dll);
         }
 
         return refs;
+    }
+
+    /// <summary>
+    /// Checks whether a DLL file is a managed assembly by reading its PE header.
+    /// Native DLLs (e.g., coreclr.dll, hostpolicy.dll) will return false.
+    /// </summary>
+    private static bool IsManagedAssembly(string path)
+    {
+        try
+        {
+            AssemblyName.GetAssemblyName(path);
+            return true;
+        }
+        catch (BadImageFormatException) { return false; }
+        catch { return false; }
     }
 }
 

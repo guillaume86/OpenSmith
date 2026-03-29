@@ -22,6 +22,15 @@
     <Copy SourceFiles="@(_PlinqoTemplateFiles)"
           DestinationFiles="@(_PlinqoTemplateFiles->'$(PlinqoTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
+
+    <!-- Write manifest so the CLI can discover the source NuGet package -->
+    <PropertyGroup>
+      <_OpenSmithManifest>{ "package": "$(PackageId)", "version": "$(PackageVersion)" }</_OpenSmithManifest>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(PlinqoTemplateDestination).opensmith.json"
+      Lines="$(_OpenSmithManifest)"
+      Overwrite="true" />
   </Target>
 
   <Target Name="_CopyPlinqoSampleCsp" BeforeTargets="BeforeBuild" Condition="!Exists('$(PlinqoSampleCspDestination)')">

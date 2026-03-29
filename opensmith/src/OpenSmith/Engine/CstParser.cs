@@ -168,6 +168,14 @@ public static class CstParser
                 });
                 break;
 
+            case "NuGet":
+                result.NuGetPackages.Add(new NuGetDirective
+                {
+                    Package = attrs.GetValueOrDefault("Package"),
+                    Version = attrs.GetValueOrDefault("Version"),
+                });
+                break;
+
             case "Import":
                 var ns = attrs.GetValueOrDefault("Namespace");
                 if (ns != null)
@@ -241,6 +249,7 @@ public class ParsedTemplate
     public List<MapDirective> Maps { get; } = new();
     public List<RegisterDirective> Registers { get; } = new();
     public List<AssemblyDirective> Assemblies { get; } = new();
+    public List<NuGetDirective> NuGetPackages { get; } = new();
     public List<string> Imports { get; } = new();
     public List<string> ScriptBlocks { get; } = new();
     public List<TemplateNode> Nodes { get; } = new();
@@ -297,4 +306,10 @@ public class AssemblyDirective
     public string Name { get; set; }
     public string Path { get; set; }
     public string Src { get; set; }
+}
+
+public class NuGetDirective
+{
+    public string Package { get; set; }
+    public string? Version { get; set; }
 }

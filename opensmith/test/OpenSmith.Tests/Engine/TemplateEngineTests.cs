@@ -189,6 +189,22 @@ public class TemplateEngineTests
         }
 
         [Fact]
+        public void ParsesNuGetDirective()
+        {
+            var cst = """
+                <%@ CodeTemplate Language="C#" TargetLanguage="Text" %>
+                <%@ NuGet Package="Microsoft.Data.SqlClient" Version="5.*" %>
+                <%@ NuGet Package="Newtonsoft.Json" %>
+                """;
+            var parsed = CstParser.Parse(cst);
+            Assert.Equal(2, parsed.NuGetPackages.Count);
+            Assert.Equal("Microsoft.Data.SqlClient", parsed.NuGetPackages[0].Package);
+            Assert.Equal("5.*", parsed.NuGetPackages[0].Version);
+            Assert.Equal("Newtonsoft.Json", parsed.NuGetPackages[1].Package);
+            Assert.Null(parsed.NuGetPackages[1].Version);
+        }
+
+        [Fact]
         public void ParsesImportDirective()
         {
             var cst = """
