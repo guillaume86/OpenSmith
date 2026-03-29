@@ -4,7 +4,7 @@
 		<add key="ConnectionString1" value="Data Source=.\SQLEXPRESS;Initial Catalog=MyDatabase;Integrated Security=True;TrustServerCertificate=True" />
 	</variables>
 	<propertySets>
-		<propertySet name="Dbml" output=".\Generated\Dbml.xml" template="Templates\Dbml.cst">
+		<propertySet name="Dbml" output="./Generated/Dbml.xml" template="Templates/Dbml.cst">
 			<property name="IncludeViews">True</property>
 			<property name="IncludeFunctions">True</property>
 			<property name="IgnoreList">
@@ -34,10 +34,10 @@
 			</property>
 			<property name="EntityNamespace">MyProject.Data</property>
 			<property name="ContextNamespace">MyProject.Data</property>
-			<property name="DbmlFile">Generated\MyDatabase.dbml</property>
+			<property name="DbmlFile">Generated/MyDatabase.dbml</property>
 		</propertySet>
-		<propertySet name="Entities" template="Templates\Entities.cst">
-			<property name="DbmlFile">.\Generated\MyDatabase.dbml</property>
+		<propertySet name="Entities" template="Templates/Entities.cst">
+			<property name="DbmlFile">./Generated/MyDatabase.dbml</property>
 			<property name="Framework">v45</property>
 			<property name="IncludeDataServices">False</property>
 			<property name="IncludeDataRules">False</property>
@@ -46,8 +46,8 @@
 			<property name="IncludeXmlSerialization">False</property>
 			<property name="IncludeManyToMany">False</property>
 			<property name="AssociationNamingSuffix">ListSuffix</property>
-			<property name="OutputDirectory">.\Generated\Entities</property>
-			<property name="BaseDirectory">.\Generated\</property>
+			<property name="OutputDirectory">./Generated/Entities</property>
+			<property name="BaseDirectory">./Generated/</property>
 			<property name="InterfaceDirectory" />
 		</propertySet>
 	</propertySets>

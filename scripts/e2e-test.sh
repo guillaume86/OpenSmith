@@ -225,7 +225,7 @@ cat > Generate.csp << CSPEOF
     <add key="ConnectionString1" value="$CONN_STRING" />
   </variables>
   <propertySets>
-    <propertySet name="Dbml" output=".\Generated\AdventureWorks.dbml" template="$TPL_PATH/Dbml.cst">
+    <propertySet name="Dbml" output="./Generated/AdventureWorks.dbml" template="$TPL_PATH/Dbml.cst">
       <property name="IncludeViews">True</property>
       <property name="IncludeFunctions">True</property>
       <property name="IgnoreList">
@@ -255,10 +255,10 @@ cat > Generate.csp << CSPEOF
       </property>
       <property name="EntityNamespace">AdventureWorks.Data</property>
       <property name="ContextNamespace">AdventureWorks.Data</property>
-      <property name="DbmlFile">Generated\AdventureWorks.dbml</property>
+      <property name="DbmlFile">Generated/AdventureWorks.dbml</property>
     </propertySet>
     <propertySet name="Entities" template="$TPL_PATH/Entities.cst">
-      <property name="DbmlFile">.\Generated\AdventureWorks.dbml</property>
+      <property name="DbmlFile">./Generated/AdventureWorks.dbml</property>
       <property name="Framework">v45</property>
       <property name="IncludeDataServices">False</property>
       <property name="IncludeDataRules">False</property>
@@ -267,8 +267,8 @@ cat > Generate.csp << CSPEOF
       <property name="IncludeXmlSerialization">False</property>
       <property name="IncludeManyToMany">False</property>
       <property name="AssociationNamingSuffix">ListSuffix</property>
-      <property name="OutputDirectory">.\Generated\Entities</property>
-      <property name="BaseDirectory">.\Generated\</property>
+      <property name="OutputDirectory">./Generated/Entities</property>
+      <property name="BaseDirectory">./Generated/</property>
       <property name="InterfaceDirectory" />
     </propertySet>
   </propertySets>

@@ -5,7 +5,7 @@
 <%@ Assembly Name="OpenSmith.SchemaExplorer" %>
 <%@ Assembly Name="Dbml" %>
 <%@ Assembly Name="Generator" %>
-<%@ Assembly Src="Internal\Manager.cs" %>
+<%@ Assembly Src="Internal/Manager.cs" %>
 
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="CodeSmith.CustomProperties" %>
@@ -42,19 +42,19 @@
     Description="The name of the data manager class." %>
 
 <%@ Register Name="EntityManagerEditableClass" 
-    Template="Internal\EntityManager.Editable.cst" 
+    Template="Internal/EntityManager.Editable.cst"
     MergeProperties="False" %>
 
 <%@ Register Name="DataManagerClass" 
-    Template="Internal\DataManager.cst" 
+    Template="Internal/DataManager.cst"
     MergeProperties="True" ExcludeProperties="Database, DataManager" %>
 
 <%@ Register Name="DataContextManagerClass" 
-    Template="Internal\DataContext.Manager.cst" 
+    Template="Internal/DataContext.Manager.cst"
     MergeProperties="True" ExcludeProperties="Database, DataManager" %>
 
 <%@ Register Name="EntityManagerGeneratedClass" 
-    Template="Internal\EntityManager.Generated.cst" 
+    Template="Internal/EntityManager.Generated.cst"
     MergeProperties="True" ExcludeProperties="Database, DataManager,EntityManager,Table" %>
 
 <script runat="template">
@@ -89,11 +89,11 @@
         CreateEntityManagerClasses(database, databaseManager);
         
         if (this.Framework == FrameworkEnum.v45)
-            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "..\\Common\\v4.5\\CodeSmith.Data.dll")));
+            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "../Common/v4.5/CodeSmith.Data.dll")));
         else if (this.Framework == FrameworkEnum.v40)
-            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "..\\Common\\v4.0\\CodeSmith.Data.dll")));
+            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "../Common/v4.0/CodeSmith.Data.dll")));
         else
-            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "..\\Common\\v3.5\\CodeSmith.Data.dll")));
+            this.RegisterReference(Path.GetFullPath(Path.Combine(this.CodeTemplateInfo.DirectoryName, "../Common/v3.5/CodeSmith.Data.dll")));
     }
     
     public void CreateEntityManagerClasses(Database database, DataManager dataManager)

@@ -67,27 +67,29 @@ The `.csp` file is an XML project file that drives code generation. Edit the sam
   </variables>
   <propertySets>
     <!-- Phase 1: introspect the database and produce a DBML mapping file -->
-    <propertySet name="Dbml" output=".\Generated\Dbml.xml" template="Templates\Dbml.cst">
+    <propertySet name="Dbml" output="./Generated/Dbml.xml" template="Templates/Dbml.cst">
       <property name="SourceDatabase">
         <connectionString>$(ConnectionString1)</connectionString>
         <providerType>SchemaExplorer.SqlSchemaProvider,OpenSmith.SchemaExplorer</providerType>
       </property>
       <property name="EntityNamespace">MyProject.Data</property>
       <property name="ContextNamespace">MyProject.Data</property>
-      <property name="DbmlFile">Generated\MyDatabase.dbml</property>
+      <property name="DbmlFile">Generated/MyDatabase.dbml</property>
       <!-- ... naming conventions, ignore lists, etc. -->
     </propertySet>
 
     <!-- Phase 2: generate C# entities, data context, and managers from the DBML -->
-    <propertySet name="Entities" template="Templates\Entities.cst">
-      <property name="DbmlFile">.\Generated\MyDatabase.dbml</property>
-      <property name="OutputDirectory">.\Generated\Entities</property>
-      <property name="BaseDirectory">.\Generated\</property>
+    <propertySet name="Entities" template="Templates/Entities.cst">
+      <property name="DbmlFile">./Generated/MyDatabase.dbml</property>
+      <property name="OutputDirectory">./Generated/Entities</property>
+      <property name="BaseDirectory">./Generated/</property>
       <!-- ... generation options -->
     </propertySet>
   </propertySets>
 </codeSmith>
 ```
+
+> **Cross-platform note:** Use forward slashes (`/`) for all file paths in `.csp` and `.cst` files. Forward slashes work on both Windows and Linux. Backslash paths will only work on Windows.
 
 See [`plinqo/src/OpenSmith.Plinqo/Templates/Sample-Generator.csp`](plinqo/src/OpenSmith.Plinqo/Templates/Sample-Generator.csp) for a complete example with all available properties.
 
