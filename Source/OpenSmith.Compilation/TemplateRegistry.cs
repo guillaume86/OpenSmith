@@ -1,6 +1,6 @@
 using OpenSmith.Engine;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 /// <summary>
 /// Resolves the full dependency graph of templates by following Register directives recursively.

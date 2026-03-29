@@ -1,7 +1,7 @@
 using System.Text;
 using OpenSmith.Engine;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 /// <summary>
 /// Converts a ParsedTemplate (from CstParser) into compilable C# source code
@@ -9,13 +9,13 @@ namespace OpenSmith.Cli;
 /// </summary>
 public class TemplateCodeGenerator
 {
-    private static readonly HashSet<string> BlockedNamespaces = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> DefaultBlockedNamespaces = new(StringComparer.OrdinalIgnoreCase)
     {
         "CodeSmith.Engine",
         "CodeSmith.CustomProperties",
     };
 
-    private static readonly HashSet<string> BaseImports =
+    private static readonly HashSet<string> DefaultBaseImports =
     [
         "System",
         "System.IO",
@@ -27,25 +27,42 @@ public class TemplateCodeGenerator
         "System.ComponentModel",
         "System.Xml.Serialization",
         "OpenSmith.Engine",
-        "LinqToSqlShared.DbmlObjectModel",
-        "LinqToSqlShared.Generator",
-        "SchemaExplorer",
     ];
 
-    private static readonly Dictionary<string, string> TypeRewrites = new()
+    private static readonly Dictionary<string, string> DefaultTypeRewrites = new()
     {
         ["CodeSmith.CustomProperties.StringCollection"] = "List<string>",
         ["ICSharpCode.NRefactory.SupportedLanguage"] = "OpenSmith.Engine.SupportedLanguage",
         ["ICSharpCode.NRefactory.Ast.AttributeSection"] = "OpenSmith.Engine.AttributeSection",
     };
 
-    private static readonly Dictionary<string, string> SourceRewrites = new()
+    private static readonly Dictionary<string, string> DefaultSourceRewrites = new()
     {
         ["ICSharpCode.NRefactory.SupportedLanguage"] = "OpenSmith.Engine.SupportedLanguage",
         ["ICSharpCode.NRefactory.Ast.AttributeSection"] = "OpenSmith.Engine.AttributeSection",
         ["using CodeSmith.Engine;"] = "// using CodeSmith.Engine; // stripped",
         ["typeof(CodeTemplate)"] = "typeof(CodeTemplateBase)",
     };
+
+    private readonly HashSet<string> _blockedNamespaces;
+    private readonly HashSet<string> _baseImports;
+    private readonly Dictionary<string, string> _typeRewrites;
+    private readonly Dictionary<string, string> _sourceRewrites;
+
+    public TemplateCodeGenerator(
+        HashSet<string>? blockedNamespaces = null,
+        IEnumerable<string>? additionalImports = null,
+        Dictionary<string, string>? typeRewrites = null,
+        Dictionary<string, string>? sourceRewrites = null)
+    {
+        _blockedNamespaces = blockedNamespaces ?? DefaultBlockedNamespaces;
+        _baseImports = new HashSet<string>(DefaultBaseImports);
+        if (additionalImports != null)
+            foreach (var ns in additionalImports)
+                _baseImports.Add(ns);
+        _typeRewrites = typeRewrites ?? DefaultTypeRewrites;
+        _sourceRewrites = sourceRewrites ?? DefaultSourceRewrites;
+    }
 
     /// <summary>
     /// Generates a C# class for the template, optionally merging properties from registered sub-templates.
@@ -56,10 +73,10 @@ public class TemplateCodeGenerator
         var sb = new StringBuilder();
 
         // Usings
-        var imports = new HashSet<string>(BaseImports);
+        var imports = new HashSet<string>(_baseImports);
         foreach (var imp in template.Imports)
         {
-            if (!BlockedNamespaces.Contains(imp))
+            if (!_blockedNamespaces.Contains(imp))
                 imports.Add(imp);
         }
         foreach (var ns in imports.OrderBy(n => n))
@@ -175,9 +192,9 @@ public class TemplateCodeGenerator
         return name.Replace('.', '_').Replace('-', '_').Replace(' ', '_');
     }
 
-    private static string ResolveType(string typeName)
+    private string ResolveType(string typeName)
     {
-        if (TypeRewrites.TryGetValue(typeName, out var rewritten))
+        if (_typeRewrites.TryGetValue(typeName, out var rewritten))
             return rewritten;
         return typeName;
     }
@@ -191,9 +208,9 @@ public class TemplateCodeGenerator
         return null;
     }
 
-    private static string ApplySourceRewrites(string source)
+    private string ApplySourceRewrites(string source)
     {
-        foreach (var (from, to) in SourceRewrites)
+        foreach (var (from, to) in _sourceRewrites)
             source = source.Replace(from, to);
         return source;
     }

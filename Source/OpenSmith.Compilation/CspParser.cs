@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 public static class CspParser
 {

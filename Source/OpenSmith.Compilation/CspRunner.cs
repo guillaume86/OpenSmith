@@ -1,6 +1,6 @@
 using OpenSmith.Engine;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 /// <summary>
 /// Orchestrates CSP project execution: parse, compile templates, set properties, generate.
@@ -60,7 +60,18 @@ public class CspRunner
 
         Log($"  Resolved {registry.Entries.Count} template(s)");
 
-        // 2. Generate C# source for each template
+        // 2. Collect assembly names from all templates' <%@ Assembly %> directives
+        var assemblyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in registry.Entries.Values)
+        {
+            foreach (var asm in entry.Parsed.Assemblies)
+            {
+                if (!string.IsNullOrEmpty(asm.Name))
+                    assemblyNames.Add(asm.Name);
+            }
+        }
+
+        // 3. Generate C# source for each template
         var generator = new TemplateCodeGenerator();
         var sources = new Dictionary<string, string>();
 
@@ -76,7 +87,7 @@ public class CspRunner
                 Log($"  Generated class: {className}");
         }
 
-        // 3. Collect Assembly Src files
+        // 4. Collect Assembly Src files
         foreach (var entry in registry.Entries.Values)
         {
             foreach (var asm in entry.Parsed.Assemblies)
@@ -97,8 +108,8 @@ public class CspRunner
             }
         }
 
-        // 4. Compile all templates into one assembly (with optional cache)
-        var compiler = new TemplateCompiler();
+        // 5. Compile all templates into one assembly (with optional cache)
+        var compiler = new TemplateCompiler(assemblyNames);
         var typeMap = compiler.Compile(sources, _cache);
 
         var cacheStatus = compiler.CacheHit switch
@@ -109,19 +120,19 @@ public class CspRunner
         };
         Log($"  Compiled {typeMap.Count} template type(s){cacheStatus}");
 
-        // 5. Instantiate root template
+        // 6. Instantiate root template
         if (!typeMap.TryGetValue(rootClassName, out var rootType))
             throw new InvalidOperationException($"Root template class '{rootClassName}' not found in compiled assembly");
 
         var template = (CodeTemplateBase)Activator.CreateInstance(rootType)!;
         template.CodeTemplateInfo.DirectoryName = Path.GetDirectoryName(templatePath);
 
-        // 6. Set properties from CSP
+        // 7. Set properties from CSP
         PropertyDeserializer.SetProperties(template, propertySet.Properties, variables);
 
         Log($"  Executing template...");
 
-        // 7. Execute template (RenderToString triggers Generate() via template body)
+        // 8. Execute template (RenderToString triggers Generate() via template body)
         template.RenderToString();
 
         Log($"  Done: {propertySet.Name}");

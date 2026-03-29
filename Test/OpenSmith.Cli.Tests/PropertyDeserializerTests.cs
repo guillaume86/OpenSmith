@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using OpenSmith.Cli;
+using OpenSmith.Compilation;
 using OpenSmith.Engine;
 
 namespace OpenSmith.Cli.Tests;

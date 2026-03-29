@@ -1,4 +1,4 @@
-using OpenSmith.Cli;
+using OpenSmith.Compilation;
 
 namespace OpenSmith.Cli.Tests;
 

@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using OpenSmith.Engine;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 /// <summary>
 /// Compiles generated C# source code into an in-memory assembly using Roslyn.
@@ -13,9 +13,13 @@ public class TemplateCompiler
 {
     private readonly List<MetadataReference> _references;
 
-    public TemplateCompiler()
+    /// <summary>
+    /// Creates a compiler that resolves the given assembly names (from template directives)
+    /// in addition to standard runtime and OpenSmith assemblies.
+    /// </summary>
+    public TemplateCompiler(IEnumerable<string>? assemblyNames = null)
     {
-        _references = BuildMetadataReferences();
+        _references = BuildMetadataReferences(assemblyNames ?? []);
     }
 
     /// <summary>
@@ -109,7 +113,7 @@ public class TemplateCompiler
         return sourceContent;
     }
 
-    private static List<MetadataReference> BuildMetadataReferences()
+    private static List<MetadataReference> BuildMetadataReferences(IEnumerable<string> assemblyNames)
     {
         var refs = new List<MetadataReference>();
         var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -153,22 +157,23 @@ public class TemplateCompiler
         // mscorlib / System.Private.CoreLib
         AddRef(typeof(object).Assembly.Location);
 
-        // Add project assemblies from loaded assemblies
-        var projectAssemblyNames = new HashSet<string> { "OpenSmith", "Generator", "Dbml" };
+        // Always include OpenSmith engine
+        var requestedNames = new HashSet<string>(assemblyNames, StringComparer.OrdinalIgnoreCase) { "OpenSmith" };
+
+        // Resolve requested assemblies from loaded assemblies
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
         {
             if (asm.IsDynamic || string.IsNullOrEmpty(asm.Location))
                 continue;
 
             var asmName = asm.GetName().Name;
-            if (projectAssemblyNames.Contains(asmName!))
+            if (asmName != null && requestedNames.Contains(asmName))
                 AddRef(asm.Location);
         }
 
-        // Also scan the application base directory for project assemblies
-        // (handles cases where assemblies aren't loaded yet)
+        // Also scan the application base directory for assemblies not yet loaded
         var appDir = AppContext.BaseDirectory;
-        foreach (var name in projectAssemblyNames)
+        foreach (var name in requestedNames)
         {
             AddRef(Path.Combine(appDir, name + ".dll"));
         }

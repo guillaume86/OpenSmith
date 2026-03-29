@@ -4,8 +4,4 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.*" />
-  </ItemGroup>
-
 </Project>

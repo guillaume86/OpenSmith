@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using OpenSmith.Benchmarks.Helpers;
-using OpenSmith.Cli;
+using OpenSmith.Compilation;
 using OpenSmith.Engine;
 
 namespace OpenSmith.Benchmarks.Benchmarks;

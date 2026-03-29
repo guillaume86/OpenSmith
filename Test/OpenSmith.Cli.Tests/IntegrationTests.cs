@@ -1,4 +1,4 @@
-using OpenSmith.Cli;
+using OpenSmith.Compilation;
 using OpenSmith.Engine;
 
 namespace OpenSmith.Cli.Tests;
@@ -18,7 +18,8 @@ public class IntegrationTests
         var className = TemplateCodeGenerator.SanitizeClassName(templatePath);
         var source = generator.GenerateClass(className, parsed);
 
-        var compiler = new TemplateCompiler();
+        var assemblyNames = CollectAssemblyNames(parsed);
+        var compiler = new TemplateCompiler(assemblyNames);
         var typeMap = compiler.Compile(new Dictionary<string, string>
         {
             [className] = source,
@@ -47,7 +48,8 @@ public class IntegrationTests
         }
 
         // Compile
-        var compiler = new TemplateCompiler();
+        var assemblyNames = CollectAssemblyNames(registry);
+        var compiler = new TemplateCompiler(assemblyNames);
         var typeMap = compiler.Compile(sources);
 
         Assert.True(typeMap.ContainsKey(rootClassName),
@@ -95,7 +97,8 @@ public class IntegrationTests
         }
 
         // Compile
-        var compiler = new TemplateCompiler();
+        var assemblyNames = CollectAssemblyNames(registry);
+        var compiler = new TemplateCompiler(assemblyNames);
         var typeMap = compiler.Compile(sources);
 
         Assert.True(typeMap.ContainsKey(rootClassName),
@@ -146,10 +149,30 @@ public class IntegrationTests
             }
         }
 
-        var compiler = new TemplateCompiler();
+        var assemblyNames = CollectAssemblyNames(registry);
+        var compiler = new TemplateCompiler(assemblyNames);
         var typeMap = compiler.Compile(sources);
 
         Assert.True(typeMap.ContainsKey(rootClassName),
             $"Expected root type '{rootClassName}' in compiled assembly");
+    }
+
+    private static HashSet<string> CollectAssemblyNames(TemplateRegistry registry)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in registry.Entries.Values)
+            foreach (var asm in entry.Parsed.Assemblies)
+                if (!string.IsNullOrEmpty(asm.Name))
+                    names.Add(asm.Name);
+        return names;
+    }
+
+    private static HashSet<string> CollectAssemblyNames(ParsedTemplate parsed)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var asm in parsed.Assemblies)
+            if (!string.IsNullOrEmpty(asm.Name))
+                names.Add(asm.Name);
+        return names;
     }
 }

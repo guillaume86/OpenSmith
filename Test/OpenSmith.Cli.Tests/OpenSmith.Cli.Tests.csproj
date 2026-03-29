@@ -14,8 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Source\OpenSmith.Cli\OpenSmith.Cli.csproj" />
+    <ProjectReference Include="..\..\Source\OpenSmith.Compilation\OpenSmith.Compilation.csproj" />
     <ProjectReference Include="..\..\Source\OpenSmith\OpenSmith.csproj" />
+    <ProjectReference Include="..\..\Source\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
     <ProjectReference Include="..\..\Source\Generator\Generator.csproj" />
     <ProjectReference Include="..\..\Source\Dbml\Dbml.csproj" />
   </ItemGroup>

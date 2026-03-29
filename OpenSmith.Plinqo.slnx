@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Source/">
+    <Project Path="Source/OpenSmith/OpenSmith.csproj" />
+    <Project Path="Source/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj" />
+    <Project Path="Source/Dbml/Dbml.csproj" />
+    <Project Path="Source/Generator/Generator.csproj" />
+    <Project Path="Source/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj" />
+  </Folder>
+</Solution>

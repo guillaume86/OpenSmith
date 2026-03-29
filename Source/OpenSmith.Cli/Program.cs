@@ -1,3 +1,5 @@
+using OpenSmith.Compilation;
+
 namespace OpenSmith.Cli;
 
 public class Program

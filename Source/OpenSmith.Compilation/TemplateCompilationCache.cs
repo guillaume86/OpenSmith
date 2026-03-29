@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace OpenSmith.Cli;
+namespace OpenSmith.Compilation;
 
 /// <summary>
 /// Caches compiled template assemblies on disk, keyed by SHA256 of the input sources.
