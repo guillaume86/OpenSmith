@@ -1,0 +1,62 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Generic consumer-side targets for OpenSmith template packages.
+    Copied into the NuGet package at pack time by OpenSmith.Sdk.TemplatePackage
+    and renamed to build/$(PackageId).targets so NuGet auto-imports it.
+
+    $(MSBuildThisFileName) resolves to the package ID at consumer-import-time.
+    All target/item names are suffixed with the package ID to avoid collisions
+    when a consumer installs multiple template packages.
+  -->
+
+  <PropertyGroup>
+    <OpenSmithTemplateFolderName Condition="'$(OpenSmithTemplateFolderName)' == ''">$(MSBuildThisFileName)</OpenSmithTemplateFolderName>
+    <_OpenSmithTemplateSource>$(MSBuildThisFileDirectory)..\templates\</_OpenSmithTemplateSource>
+    <_OpenSmithTemplateDestination>$(MSBuildProjectDirectory)\Templates\$(OpenSmithTemplateFolderName)\</_OpenSmithTemplateDestination>
+    <_OpenSmithSampleCspSource>$(_OpenSmithTemplateSource)Sample-Generator.csp</_OpenSmithSampleCspSource>
+    <_OpenSmithSampleCspDestination>$(MSBuildProjectDirectory)\Sample-Generator.csp</_OpenSmithSampleCspDestination>
+  </PropertyGroup>
+
+  <Target Name="_OpenSmithCopyTemplates_$(MSBuildThisFileName)"
+          BeforeTargets="BeforeBuild"
+          Condition="!Exists('$(_OpenSmithTemplateDestination)')">
+
+    <Message Importance="high" Text="$(MSBuildThisFileName): Copying templates to $(_OpenSmithTemplateDestination)" />
+
+    <ItemGroup>
+      <_OpenSmithTemplateFiles_$(MSBuildThisFileName) Include="$(_OpenSmithTemplateSource)**\*"
+                                                      Exclude="$(_OpenSmithSampleCspSource)" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_OpenSmithTemplateFiles_$(MSBuildThisFileName))"
+          DestinationFiles="@(_OpenSmithTemplateFiles_$(MSBuildThisFileName)->'$(_OpenSmithTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+
+    <!-- Write manifest so the CLI can discover the source NuGet package. -->
+    <PropertyGroup>
+      <_OpenSmithPkgName>$(MSBuildThisFileName)</_OpenSmithPkgName>
+      <!-- Path is .../packageid/<version>/build/ — go up two levels to get the version dir -->
+      <_OpenSmithPkgBuildDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileDirectory)'))</_OpenSmithPkgBuildDir>
+      <_OpenSmithPkgVersionDir>$([System.IO.Path]::GetDirectoryName('$(_OpenSmithPkgBuildDir)'))</_OpenSmithPkgVersionDir>
+      <_OpenSmithPkgVersion>$([System.IO.Path]::GetFileName('$(_OpenSmithPkgVersionDir)'))</_OpenSmithPkgVersion>
+      <_OpenSmithManifest>{ "package": "$(_OpenSmithPkgName)", "version": "$(_OpenSmithPkgVersion)" }</_OpenSmithManifest>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(_OpenSmithTemplateDestination).opensmith.json"
+      Lines="$(_OpenSmithManifest)"
+      Overwrite="true" />
+  </Target>
+
+  <Target Name="_OpenSmithCopySampleCsp_$(MSBuildThisFileName)"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(_OpenSmithSampleCspSource)') AND !Exists('$(_OpenSmithSampleCspDestination)')">
+
+    <Message Importance="high" Text="$(MSBuildThisFileName): Copying sample CSP to $(_OpenSmithSampleCspDestination)" />
+
+    <Copy SourceFiles="$(_OpenSmithSampleCspSource)"
+          DestinationFiles="$(_OpenSmithSampleCspDestination)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

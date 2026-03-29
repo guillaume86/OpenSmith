@@ -5,9 +5,20 @@
     <None Include="Templates\**\*" Pack="true" PackagePath="templates\" />
   </ItemGroup>
 
-  <!-- Auto-detect and pack the consumer-side build targets file -->
+  <!-- Auto-detect and pack the consumer-side build targets file (custom override) -->
   <ItemGroup Condition="Exists('build\$(PackageId).targets')">
     <None Include="build\$(PackageId).targets" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+  <!-- If no custom .targets exists, pack the generic consumer targets (renamed to match the package) -->
+  <ItemGroup Condition="!Exists('build\$(PackageId).targets')">
+    <None Include="$(MSBuildThisFileDirectory)OpenSmith.TemplatePackage.Consumer.targets"
+          Pack="true" PackagePath="build\$(PackageId).targets" />
+  </ItemGroup>
+
+  <!-- Auto-detect and pack a consumer-side build props file -->
+  <ItemGroup Condition="Exists('build\$(PackageId).props')">
+    <None Include="build\$(PackageId).props" Pack="true" PackagePath="build\" />
   </ItemGroup>
 
   <!-- Exclude template files from compilation -->
