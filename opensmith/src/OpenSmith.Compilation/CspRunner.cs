@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OpenSmith.Engine;
 
 namespace OpenSmith.Compilation;
@@ -18,6 +19,8 @@ public class CspRunner
 
     public void Run(string cspPath)
     {
+        var totalSw = Stopwatch.StartNew();
+
         var absoluteCspPath = Path.GetFullPath(cspPath);
         var cspDir = Path.GetDirectoryName(absoluteCspPath)!;
         var xml = File.ReadAllText(absoluteCspPath);
@@ -42,8 +45,11 @@ public class CspRunner
         }
 
         // Resolve dependencies via dotnet publish (or cache hit)
+        var depSw = Stopwatch.StartNew();
         var publisher = new DependencyPublisher(templateDir ?? cspDir, allNuGetDirectives, _verbose);
         publisher.Publish();
+        depSw.Stop();
+        Log($"Dependencies resolved [{FormatElapsed(depSw)}]");
 
         // Create custom ALC for runtime assembly + native library resolution
         var alc = new TemplateAssemblyLoadContext(publisher.PublishDirectory!);
@@ -66,6 +72,9 @@ public class CspRunner
         {
             Directory.SetCurrentDirectory(originalDir);
         }
+
+        totalSw.Stop();
+        Log($"\nCompleted in {FormatElapsed(totalSw)}");
     }
 
     private void RunPropertySet(CspPropertySet propertySet, string cspDir, Dictionary<string, string> variables,
@@ -79,12 +88,15 @@ public class CspRunner
         Log($"  Template: {templatePath}");
 
         // 1. Resolve template dependency graph
+        var sw = Stopwatch.StartNew();
         var registry = new TemplateRegistry();
         var rootClassName = registry.Resolve(templatePath);
+        sw.Stop();
 
-        Log($"  Resolved {registry.Entries.Count} template(s)");
+        Log($"  Resolved {registry.Entries.Count} template(s) [{FormatElapsed(sw)}]");
 
         // 2. Generate C# source for each template
+        sw.Restart();
         var generator = new TemplateCodeGenerator();
         var sources = new Dictionary<string, string>();
 
@@ -120,10 +132,15 @@ public class CspRunner
                 }
             }
         }
+        sw.Stop();
+
+        Log($"  Generated {sources.Count} source(s) [{FormatElapsed(sw)}]");
 
         // 4. Compile all templates into one assembly (with optional cache)
+        sw.Restart();
         var compiler = new TemplateCompiler(publishDirectory);
         var typeMap = compiler.Compile(sources, _cache, publishFingerprint);
+        sw.Stop();
 
         var cacheStatus = compiler.CacheHit switch
         {
@@ -131,7 +148,7 @@ public class CspRunner
             false => " (compiled)",
             _ => "",
         };
-        Log($"  Compiled {typeMap.Count} template type(s){cacheStatus}");
+        Log($"  Compiled {typeMap.Count} template type(s){cacheStatus} [{FormatElapsed(sw)}]");
 
         // 5. Instantiate root template
         if (!typeMap.TryGetValue(rootClassName, out var rootType))
@@ -146,12 +163,17 @@ public class CspRunner
         Log($"  Executing template...");
 
         // 7. Execute template (RenderToString triggers Generate() via template body)
+        CodeTemplateBase.ResetCounters();
+        sw.Restart();
         template.RenderToString();
+        sw.Stop();
+
+        var filesWritten = CodeTemplateBase.FilesWrittenCount;
 
         // 8. Log registered outputs and references
         LogPostExecution(template, _verbose, Log);
 
-        Log($"  Done: {propertySet.Name}");
+        Log($"  Done: {propertySet.Name} — {filesWritten} file(s) written, {template.Outputs.Count} output(s) registered [{FormatElapsed(sw)}]");
     }
 
     public static void LogPostExecution(CodeTemplateBase template, bool verbose, Action<string> log)
@@ -174,5 +196,13 @@ public class CspRunner
     private void Log(string message)
     {
         Console.WriteLine(message);
+    }
+
+    private static string FormatElapsed(Stopwatch sw)
+    {
+        var elapsed = sw.Elapsed;
+        if (elapsed.TotalMinutes >= 1)
+            return $"{elapsed.TotalMinutes:0.00}m";
+        return $"{elapsed.TotalSeconds:0.00}s";
     }
 }

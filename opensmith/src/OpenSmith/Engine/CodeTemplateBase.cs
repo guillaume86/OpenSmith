@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace OpenSmith.Engine;
 
@@ -18,6 +19,10 @@ public abstract class CodeTemplateBase
 
     private readonly List<string> _references = new();
     private readonly List<OutputFile> _outputs = new();
+
+    private static int _filesWrittenCount;
+    public static int FilesWrittenCount => _filesWrittenCount;
+    public static void ResetCounters() => _filesWrittenCount = 0;
 
     public T Create<T>() where T : CodeTemplateBase, new()
     {
@@ -80,6 +85,7 @@ public abstract class CodeTemplateBase
             Directory.CreateDirectory(dir);
 
         File.WriteAllText(fileName, RenderToString());
+        Interlocked.Increment(ref _filesWrittenCount);
     }
 
     /// <summary>
@@ -99,6 +105,7 @@ public abstract class CodeTemplateBase
         if (!content.EndsWith("\n"))
             content += "\r\n";
         File.WriteAllText(fileName, content);
+        Interlocked.Increment(ref _filesWrittenCount);
     }
 
     /// <summary>
@@ -115,12 +122,14 @@ public abstract class CodeTemplateBase
                 Directory.CreateDirectory(dir);
 
             File.WriteAllText(fileName, newContent);
+            Interlocked.Increment(ref _filesWrittenCount);
             return;
         }
 
         var existingContent = File.ReadAllText(fileName);
         var merged = mergeStrategy.Merge(existingContent, newContent);
         File.WriteAllText(fileName, merged);
+        Interlocked.Increment(ref _filesWrittenCount);
     }
 }
 
