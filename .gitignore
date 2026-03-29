@@ -246,6 +246,3 @@ health/
 
 # Claude Code
 .claude/*.local.*
-
-# DiffTest
-DiffTest*

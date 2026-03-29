@@ -1,5 +1,7 @@
+using System.Text.RegularExpressions;
 using LinqToSqlShared.DbmlObjectModel;
 using LinqToSqlShared.Generator;
+using OpenSmith.Plinqo.Tests.Fixtures;
 using SchemaExplorer;
 
 namespace OpenSmith.Plinqo.Tests.Generator;
@@ -218,5 +220,97 @@ public class DbmlGeneratorDeleteOnNullTests : IDisposable
         var fkAssociation = childTable.Type.Associations
             .First(a => a.Name == "FK_Child_Parent" && a.IsForeignKey == true);
         Assert.Null(fkAssociation.DeleteOnNull);
+    }
+}
+
+/// <summary>
+/// AdventureWorks-based DeleteOnNull tests (replaces DiffTest-NoDeleteOnNull).
+/// </summary>
+[Collection("AdventureWorks")]
+public class DbmlGeneratorDeleteOnNullAdventureWorksTests : IDisposable
+{
+    private readonly DatabaseSchema _schema;
+    private readonly string _tempDir;
+
+    public DbmlGeneratorDeleteOnNullAdventureWorksTests(AdventureWorksFixture fixture)
+    {
+        _schema = fixture.Schema;
+        _tempDir = fixture.CreateTempDir();
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tempDir))
+            Directory.Delete(_tempDir, true);
+    }
+
+    private Database Generate(bool includeDeleteOnNull)
+    {
+        var settings = new GeneratorSettings
+        {
+            MappingFile = Path.Combine(_tempDir, $"DeleteOnNull_{includeDeleteOnNull}.dbml"),
+            IncludeViews = false,
+            IncludeFunctions = false,
+            IncludeDeleteOnNull = includeDeleteOnNull,
+            EntityNaming = EntityNamingEnum.Preserve,
+            TableNaming = TableNamingEnum.Mixed,
+            AssociationNaming = AssociationNamingEnum.ListSuffix,
+        };
+        settings.IncludeExpressions.Add(new Regex(@"^Sales\.SalesOrderHeader$"));
+        settings.IncludeExpressions.Add(new Regex(@"^Sales\.SalesOrderDetail$"));
+        settings.IncludeExpressions.Add(new Regex(@"^Sales\.Customer$"));
+        settings.IgnoreExpressions.Add(new Regex(@"sysdiagrams$"));
+
+        var generator = new DbmlGenerator(settings);
+        return generator.Create(_schema);
+    }
+
+    [Fact]
+    public void NoDeleteOnNull_AdventureWorks_AllAssociationsHaveNullDeleteOnNull()
+    {
+        var database = Generate(includeDeleteOnNull: false);
+
+        foreach (var table in database.Tables)
+        {
+            foreach (var assoc in table.Type.Associations)
+            {
+                Assert.Null(assoc.DeleteOnNull);
+            }
+        }
+    }
+
+    [Fact]
+    public void WithDeleteOnNull_AdventureWorks_NonNullableFksHaveDeleteOnNullTrue()
+    {
+        var database = Generate(includeDeleteOnNull: true);
+
+        // SalesOrderDetail has non-nullable FK to SalesOrderHeader (SalesOrderID is NOT NULL)
+        var detailTable = database.Tables
+            .FirstOrDefault(t => t.Name.Contains("SalesOrderDetail"));
+        Assert.NotNull(detailTable);
+
+        var fkAssociations = detailTable.Type.Associations
+            .Where(a => a.IsForeignKey == true)
+            .ToList();
+
+        // At least one FK association should have DeleteOnNull=true (non-nullable FK columns)
+        Assert.Contains(fkAssociations, a => a.DeleteOnNull == true);
+    }
+
+    [Fact]
+    public void WithDeleteOnNull_PrimarySide_NeverHasDeleteOnNull()
+    {
+        var database = Generate(includeDeleteOnNull: true);
+
+        foreach (var table in database.Tables)
+        {
+            foreach (var assoc in table.Type.Associations)
+            {
+                if (assoc.IsForeignKey != true)
+                {
+                    Assert.Null(assoc.DeleteOnNull);
+                }
+            }
+        }
     }
 }
