@@ -4,6 +4,7 @@
     <Project Path="opensmith/src/OpenSmith.Compilation/OpenSmith.Compilation.csproj" />
     <Project Path="opensmith/src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj" />
     <Project Path="opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj" />
+    <Project Path="opensmith/src/OpenSmith.Sdk.TemplatePackage/OpenSmith.Sdk.TemplatePackage.csproj" />
   </Folder>
   <Folder Name="/opensmith/test/">
     <Project Path="opensmith/test/OpenSmith.Tests/OpenSmith.Tests.csproj" />

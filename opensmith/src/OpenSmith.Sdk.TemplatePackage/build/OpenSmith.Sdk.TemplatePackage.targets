@@ -1,0 +1,40 @@
+<Project>
+
+  <!-- Pack templates into the NuGet package -->
+  <ItemGroup>
+    <None Include="Templates\**\*" Pack="true" PackagePath="templates\" />
+  </ItemGroup>
+
+  <!-- Auto-detect and pack the consumer-side build targets file -->
+  <ItemGroup Condition="Exists('build\$(PackageId).targets')">
+    <None Include="build\$(PackageId).targets" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+  <!-- Exclude template files from compilation -->
+  <ItemGroup>
+    <Compile Remove="Templates\**" />
+  </ItemGroup>
+
+  <!-- Bundle all project reference DLLs into the package -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="_CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Bundle platform-specific native DLLs -->
+  <Target Name="_PackRuntimeNativeAssets" AfterTargets="Build" BeforeTargets="$(GenerateNuspecDependsOn)">
+    <ItemGroup>
+      <_RuntimeFile Include="$(TargetDir)runtimes\**\*" />
+      <Content Include="@(_RuntimeFile)" Pack="true"
+        PackagePath="runtimes"
+        CopyToOutputDirectory="Never" />
+    </ItemGroup>
+  </Target>
+
+</Project>
