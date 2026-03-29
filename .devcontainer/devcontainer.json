@@ -1,6 +1,7 @@
 {
   "name": "OpenSmith",
   "image": "mcr.microsoft.com/dotnet/sdk:10.0",
+  "runArgs": ["--network=host"],
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
@@ -15,5 +16,5 @@
   "containerEnv": {
     "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
   },
-  "postCreateCommand": "dotnet restore OpenSmith.All.slnx"
+  "postCreateCommand": "echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.bashrc && source ~/.bashrc && dotnet restore OpenSmith.All.slnx"
 }
