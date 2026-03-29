@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+#if SYSTEM_WEB
 using System.Web.Caching;
+#endif
 using CodeSmith.Data.Linq;
 
 namespace CodeSmith.Data.Caching
@@ -43,7 +45,9 @@ namespace CodeSmith.Data.Caching
         public CacheSettings()
         {
             CacheEmptyResult = true;
+#if SYSTEM_WEB
             Priority = CacheItemPriority.Normal;
+#endif
             Mode = CacheExpirationMode.None;
             Group = CacheManager.DefaultGroup;
         }
@@ -118,18 +122,21 @@ namespace CodeSmith.Data.Caching
         public DateTime AbsoluteExpiration { get; set; }
 
         /// <summary>
+#if SYSTEM_WEB
         /// The cost of the object relative to other items stored in the cache, as
         /// expressed by the System.Web.Caching.CacheItemPriority enumeration. This value is
         /// used by the cache when it evicts objects; objects with a lower cost are removed
         /// from the cache before objects with a higher cost.
         /// </summary>
         public CacheItemPriority Priority { get; set; }
+#endif
 
         /// <summary>
         /// Used to determine if an empty result should be cached.
         /// </summary>
         public bool CacheEmptyResult { get; set; }
 
+#if SYSTEM_WEB
         /// <summary>
         /// The file or cache key dependencies for the item. When any dependency changes, the
         /// object becomes invalid and is removed from the cache. If there are no
@@ -143,6 +150,7 @@ namespace CodeSmith.Data.Caching
         /// the cache.
         /// </summary>
         public CacheItemRemovedCallback CacheItemRemovedCallback { get; set; }
+#endif
 
         /// <summary>
         /// Gets or sets the cache provider name.
@@ -169,10 +177,14 @@ namespace CodeSmith.Data.Caching
                 Mode = Mode,
                 Duration = Duration,
                 AbsoluteExpiration = AbsoluteExpiration,
+#if SYSTEM_WEB
                 Priority = Priority,
+#endif
                 CacheEmptyResult = CacheEmptyResult,
+#if SYSTEM_WEB
                 CacheDependency = CacheDependency,
                 CacheItemRemovedCallback = CacheItemRemovedCallback,
+#endif
                 Provider = Provider,
                 Group = Group
             };

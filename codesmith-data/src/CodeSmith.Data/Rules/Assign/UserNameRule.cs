@@ -2,8 +2,10 @@
 using System.Reflection;
 using System.Security.Principal;
 using System.Threading;
+#if SYSTEM_WEB
 using System.Web;
 using System.Web.Hosting;
+#endif
 
 namespace CodeSmith.Data.Rules.Assign
 {
@@ -75,7 +77,7 @@ namespace CodeSmith.Data.Rules.Assign
 
         private static string GetCurrentUserName()
         {
-            
+#if SYSTEM_WEB
             if (HostingEnvironment.IsHosted)
             {
                 IPrincipal currentUser = null;
@@ -86,6 +88,7 @@ namespace CodeSmith.Data.Rules.Assign
                 if ((currentUser != null) && (currentUser.Identity != null))
                     return currentUser.Identity.Name;
             }
+#endif
 
             return Environment.UserName;
         }

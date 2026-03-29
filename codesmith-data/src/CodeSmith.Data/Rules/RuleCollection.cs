@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using CodeSmith.Data.Collections;
 
 namespace CodeSmith.Data.Rules
 {

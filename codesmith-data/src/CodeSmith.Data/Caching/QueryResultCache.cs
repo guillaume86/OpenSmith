@@ -173,7 +173,7 @@ namespace CodeSmith.Data.Caching
         private static string ToMd5Fingerprint(string s)
         {
             byte[] bytes = Encoding.Unicode.GetBytes(s.ToCharArray());
-            byte[] hash = new MD5CryptoServiceProvider().ComputeHash(bytes);
+            byte[] hash = System.Security.Cryptography.MD5.HashData(bytes);
 
             // concat the hash bytes into one long string
             return hash.Aggregate(new StringBuilder(32),

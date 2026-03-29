@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if SYSTEM_WEB
+using System;
 using System.Linq;
 using CodeSmith.Data.Caching;
 using CodeSmith.Data.Future;
@@ -52,3 +53,4 @@ namespace CodeSmith.Data.Linq
         }
     }
 }
+#endif

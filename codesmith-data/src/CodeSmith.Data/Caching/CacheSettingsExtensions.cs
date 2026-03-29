@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Data.Linq;
 using System.Linq;
+#if SYSTEM_WEB
 using System.Web.Caching;
+#endif
 
 namespace CodeSmith.Data.Caching
 {
@@ -29,11 +31,13 @@ namespace CodeSmith.Data.Caching
             return settings;
         }
 
+#if SYSTEM_WEB
         public static CacheSettings WithPriority(this CacheSettings settings, CacheItemPriority priority)
         {
             settings.Priority = priority;
             return settings;
         }
+#endif
 
         public static CacheSettings WithCacheEmptyResult(this CacheSettings settings, bool cacheEmptyResult)
         {
@@ -41,6 +45,7 @@ namespace CodeSmith.Data.Caching
             return settings;
         }
 
+#if SYSTEM_WEB
         public static CacheSettings WithCacheDependency(this CacheSettings settings, CacheDependency cacheDependency)
         {
             settings.CacheDependency = cacheDependency;
@@ -82,10 +87,10 @@ namespace CodeSmith.Data.Caching
                     var agregateDependency = new AggregateCacheDependency();
                     if (settings.CacheDependency != null)
                         agregateDependency.Add(settings.CacheDependency);
-                    
+
                     foreach (var dependency in cacheDependencies)
                         agregateDependency.Add(dependency);
-                    
+
                     settings.CacheDependency = agregateDependency;
                 }
             }
@@ -101,7 +106,7 @@ namespace CodeSmith.Data.Caching
         {
             if (sqlCacheDependencyTableNames == null)
                 return settings;
-            
+
             var cacheDependencies = sqlCacheDependencyTableNames.Select(t => new SqlCacheDependency(databaseName, t));
             return AddCacheDependency(settings, cacheDependencies.Cast<CacheDependency>());
         }
@@ -121,6 +126,7 @@ namespace CodeSmith.Data.Caching
             settings.CacheItemRemovedCallback = cacheItemRemovedCallback;
             return settings;
         }
+#endif
 
         public static CacheSettings WithProvider(this CacheSettings settings, string provider)
         {

@@ -91,7 +91,6 @@ namespace CodeSmith.Data.Linq
         /// <summary>
         /// Starts a database transaction.
         /// </summary>
-        /// <param name="dataContext">The data context.</param>
         /// <returns>An object representing the new transaction.</returns>
         public DbTransaction BeginTransaction()
         {
@@ -101,7 +100,6 @@ namespace CodeSmith.Data.Linq
         /// <summary>
         /// Starts a database transaction with the specified isolation level. 
         /// </summary>
-        /// <param name="dataContext">The data context.</param>
         /// <param name="isolationLevel">The isolation level for the transaction.</param>
         /// <returns>An object representing the new transaction.</returns>
         public DbTransaction BeginTransaction(IsolationLevel isolationLevel)
@@ -122,6 +120,11 @@ namespace CodeSmith.Data.Linq
         public bool HasOpenTransaction
         {
             get { return Transaction != null; }
+        }
+
+        public void SubmitChanges()
+        {
+            SubmitChanges();
         }
 
         #endregion

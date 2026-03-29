@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using CodeSmith.Data.Collections;
+using System.Collections.Concurrent;
 
 namespace CodeSmith.Data.Caching
 {

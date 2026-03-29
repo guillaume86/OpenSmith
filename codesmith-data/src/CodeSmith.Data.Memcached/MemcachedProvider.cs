@@ -65,7 +65,14 @@ namespace CodeSmith.Data.Memcached
         /// </summary>
         private class Nested
         {
-            internal static readonly MemcachedClient Client = new MemcachedClient();
+            private static readonly Microsoft.Extensions.Logging.ILoggerFactory LogFactory =
+                new Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory();
+
+            private static readonly Enyim.Caching.Configuration.MemcachedClientConfiguration Config =
+                new(LogFactory, new Microsoft.Extensions.Options.OptionsWrapper<Enyim.Caching.Configuration.MemcachedClientOptions>(
+                    new Enyim.Caching.Configuration.MemcachedClientOptions()));
+
+            internal static readonly MemcachedClient Client = new(LogFactory, Config);
         }
 
     }

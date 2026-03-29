@@ -9,8 +9,10 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
+#if SYSTEM_WEB
 using System.Web;
 using System.Web.Hosting;
+#endif
 using CodeSmith.Data.Caching;
 using CodeSmith.Data.Linq;
 using CodeSmith.Data.Linq.Dynamic;
@@ -670,6 +672,7 @@ namespace CodeSmith.Data.Audit
 
         private static string GetCurrentUserName()
         {
+#if SYSTEM_WEB
             if (HostingEnvironment.IsHosted)
             {
                 IPrincipal currentUser = null;
@@ -680,6 +683,7 @@ namespace CodeSmith.Data.Audit
                 if ((currentUser != null) && (currentUser.Identity != null))
                     return currentUser.Identity.Name;
             }
+#endif
 
             return Environment.UserName;
         }

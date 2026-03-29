@@ -1,4 +1,5 @@
-﻿using System.Data.Linq;
+﻿#if SYSTEM_WEB
+using System.Data.Linq;
 using System.Linq;
 using CodeSmith.Data.Caching;
 using CodeSmith.Data.LinqToSql;
@@ -169,3 +170,4 @@ namespace CodeSmith.Data.Linq
         }
     }
 }
+#endif

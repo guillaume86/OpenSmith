@@ -1,7 +1,9 @@
 ﻿using System.Security.Principal;
 using System.Threading;
+#if SYSTEM_WEB
 using System.Web;
 using System.Web.Hosting;
+#endif
 
 namespace CodeSmith.Data.Rules.Security
 {
@@ -97,12 +99,14 @@ namespace CodeSmith.Data.Rules.Security
         {
             IPrincipal currentUser = null;
 
+#if SYSTEM_WEB
             if (HostingEnvironment.IsHosted)
             {
                 HttpContext current = HttpContext.Current;
                 if (current != null)
                     currentUser = current.User;
             }
+#endif
 
             if (currentUser == null)
                 currentUser = Thread.CurrentPrincipal;

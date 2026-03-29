@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if SYSTEM_WEB
+using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Web;
@@ -104,3 +105,4 @@ namespace CodeSmith.Data.Caching
         }
     }
 }
+#endif

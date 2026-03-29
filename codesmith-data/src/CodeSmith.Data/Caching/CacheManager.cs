@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+#if SYSTEM_WEB
 using System.Web.Configuration;
-using CodeSmith.Data.Collections;
+#endif
 
 namespace CodeSmith.Data.Caching
 {
@@ -51,7 +53,9 @@ namespace CodeSmith.Data.Caching
             _providers = new ConcurrentDictionary<string, ICacheProvider>(StringComparer.OrdinalIgnoreCase);
             _profiles = new ConcurrentDictionary<string, CacheSettings>(StringComparer.OrdinalIgnoreCase);
 
+#if SYSTEM_WEB
             RegisterProvider<HttpCacheProvider>(true);
+#endif
             RegisterProvider<StaticCacheProvider>();
             _defaultProfile = new CacheSettings();
 
@@ -60,6 +64,7 @@ namespace CodeSmith.Data.Caching
 
         private static void Initialize()
         {
+#if SYSTEM_WEB
             var cacheSection = ConfigurationManager.GetSection("cacheManager") as CacheManagerSection;
             if (cacheSection == null)
                 return;
@@ -92,6 +97,7 @@ namespace CodeSmith.Data.Caching
 
             if (!String.IsNullOrEmpty(cacheSection.DefaultGroup))
                 DefaultGroup = cacheSection.DefaultGroup;
+#endif
         }
 
         /// <summary>

@@ -45,8 +45,10 @@ namespace CodeSmith.Data.Linq
         /// <exception cref="T:System.Runtime.Serialization.SerializationException">
         /// The class name is null or <see cref="P:System.Exception.HResult"/> is zero (0).
         /// </exception>
+#pragma warning disable SYSLIB0051 // Binary serialization is obsolete
         protected FutureException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {}
+#pragma warning restore SYSLIB0051
     }
 }

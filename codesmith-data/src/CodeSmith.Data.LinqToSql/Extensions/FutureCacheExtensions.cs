@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if SYSTEM_WEB
+using System.Collections.Generic;
 using System.Linq;
 using CodeSmith.Data.Caching;
 
@@ -51,3 +52,4 @@ namespace CodeSmith.Data.Linq
         }
     }
 }
+#endif

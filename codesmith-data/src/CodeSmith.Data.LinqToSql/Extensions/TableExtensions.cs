@@ -5,11 +5,13 @@ using System.Data.Common;
 using System.Data.Linq;
 using System.Data.Linq.Mapping;
 using System.Linq;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+#if SYSTEM_WEB
 using System.Web.Caching;
+#endif
 
 namespace CodeSmith.Data.Linq
 {
@@ -310,12 +312,14 @@ namespace CodeSmith.Data.Linq
             return tableName;
         }
         
+#if SYSTEM_WEB
         public static void EnableSqlCacheDependency<TEntity>(this Table<TEntity> table) where TEntity: class
         {
             Type entityType = typeof(TEntity);
             MetaTable metaTable = table.Context.Mapping.GetTable(entityType);
             SqlCacheDependencyAdmin.EnableTableForNotifications(table.Context.Connection.ConnectionString, metaTable.TableName);
         }
+#endif
 
         public static string TableName<TEntity>(this Table<TEntity> table) where TEntity : class
         {

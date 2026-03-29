@@ -1,7 +1,9 @@
 ﻿using System.Net;
 using System.Reflection;
+#if SYSTEM_WEB
 using System.Web;
 using System.Web.Hosting;
+#endif
 
 namespace CodeSmith.Data.Rules.Assign
 {
@@ -76,12 +78,14 @@ namespace CodeSmith.Data.Rules.Assign
         {
             string ip = string.Empty;
 
+#if SYSTEM_WEB
             if (HostingEnvironment.IsHosted)
             {
                 HttpContext current = HttpContext.Current;
                 if (current != null)
                     ip = current.Request.UserHostAddress;
             }
+#endif
 
             if (string.IsNullOrEmpty(ip))
             {

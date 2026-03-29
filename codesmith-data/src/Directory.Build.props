@@ -8,6 +8,8 @@
     <AssemblyVersion>5.1.0.0</AssemblyVersion>
     <FileVersion>5.1.0.1494</FileVersion>
     <InformationalVersion>5.1.0.1494</InformationalVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>1591;1574;1723</NoWarn>
   </PropertyGroup>
 
 </Project>

@@ -18,4 +18,9 @@
   <Folder Name="/plinqo/test/">
     <Project Path="plinqo/test/OpenSmith.Plinqo.Tests/OpenSmith.Plinqo.Tests.csproj" />
   </Folder>
+  <Folder Name="/codesmith-data/src/">
+    <Project Path="codesmith-data/src/CodeSmith.Data/CodeSmith.Data.csproj" />
+    <Project Path="codesmith-data/src/CodeSmith.Data.LinqToSql/CodeSmith.Data.LinqToSql.csproj" />
+    <Project Path="codesmith-data/src/CodeSmith.Data.Memcached/CodeSmith.Data.Memcached.csproj" />
+  </Folder>
 </Solution>

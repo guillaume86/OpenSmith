@@ -1,3 +1,4 @@
+#if SYSTEM_WEB
 using System.Web.Script.Serialization;
 
 namespace CodeSmith.Data.Serialization
@@ -17,3 +18,4 @@ namespace CodeSmith.Data.Serialization
         }
     }
 }
+#endif
