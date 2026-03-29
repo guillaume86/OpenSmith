@@ -8,5 +8,6 @@
   <Folder Name="/Test/">
     <Project Path="Test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
     <Project Path="Test/OpenSmith.Cli.Tests/OpenSmith.Cli.Tests.csproj" />
+    <Project Path="Test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj" />
   </Folder>
 </Solution>
