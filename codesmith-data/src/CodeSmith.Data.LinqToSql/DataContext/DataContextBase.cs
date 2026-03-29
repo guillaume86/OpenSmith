@@ -6,8 +6,10 @@ using System.Data.Linq;
 using System.Data.Linq.Mapping;
 using System.Linq;
 using System.Reflection;
+#if !STANDALONE
 using CodeSmith.Data.Caching;
 using CodeSmith.Data.Future;
+#endif
 using CodeSmith.Data.LinqToSql;
 
 namespace CodeSmith.Data.Linq
@@ -15,7 +17,10 @@ namespace CodeSmith.Data.Linq
     /// <summary>
     /// A base class for DataContext that includes future query support.
     /// </summary>
-    public class DataContextBase : DataContext, IDataContext, IFutureContext
+    public class DataContextBase : DataContext, IDataContext
+#if !STANDALONE
+        , IFutureContext
+#endif
     {
         #region Constructors
 
@@ -124,11 +129,12 @@ namespace CodeSmith.Data.Linq
 
         public void SubmitChanges()
         {
-            SubmitChanges();
+            base.SubmitChanges(null);
         }
 
         #endregion
 
+#if !STANDALONE
         #region IFutureContext
 
         /// <summary>
@@ -202,5 +208,6 @@ namespace CodeSmith.Data.Linq
         }
 
         #endregion
+#endif
     }
 }

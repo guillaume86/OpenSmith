@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+#if !STANDALONE
 using CodeSmith.Data.Future;
+#endif
 
 namespace CodeSmith.Data
 {
@@ -26,6 +28,7 @@ namespace CodeSmith.Data
             return null;
         }
 
+#if !STANDALONE
         public static IFutureContext GetFutureConext(IQueryable query)
         {
             foreach (var provider in _providers)
@@ -37,5 +40,6 @@ namespace CodeSmith.Data
 
             return null;
         }
+#endif
     }
 }

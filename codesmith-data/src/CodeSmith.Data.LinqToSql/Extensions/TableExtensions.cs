@@ -81,7 +81,7 @@ namespace CodeSmith.Data.Linq
         private static DbCommand GetDeleteBatchCommand<TEntity>(this Table<TEntity> table, IQueryable<TEntity> entities) where TEntity : class
         {
             DbCommand deleteCommand = table.Context.GetCommand(entities);
-            deleteCommand.CommandText = string.Format("DELETE {0}\r\n", table.GetDbName()) + GetBatchJoinQuery(table, entities);
+            deleteCommand.CommandText = string.Format("DELETE {0}{1}", table.GetDbName(), Environment.NewLine) + GetBatchJoinQuery(table, entities);
             return deleteCommand;
         }
 
@@ -108,10 +108,11 @@ namespace CodeSmith.Data.Linq
                                                   });
 
             // Complete the command text by concatenating bits together.
-            updateCommand.CommandText = string.Format("UPDATE {0}\r\n{1}\r\n\r\n{2}",
+            updateCommand.CommandText = string.Format("UPDATE {0}{3}{1}{3}{3}{2}",
                                                       table.GetDbName(), // Database table name
                                                       setSB, // SET fld = {}, fld2 = {}, ...
-                                                      GetBatchJoinQuery(table, entities)); // Sub query join created from entities command text
+                                                      GetBatchJoinQuery(table, entities), // Sub query join created from entities command text
+                                                      Environment.NewLine);
 
             if (updateCommand.CommandText.IndexOf("[arg0]") >= 0)
                 // TODO (Chris): Probably a better way to determine this by using an visitor on the expression before the
@@ -156,15 +157,15 @@ namespace CodeSmith.Data.Linq
 
             join = join.Substring(0, join.Length - 5); // Remove last ' AND '
             string selectClause = select.Substring(0, select.IndexOf("[t0]")); // Get 'SELECT ' and any TOP clause if present
-            bool needsTopClause = selectClause.IndexOf(" TOP ") < 0 && select.IndexOf("\r\nORDER BY ") > 0;
+            bool needsTopClause = selectClause.IndexOf(" TOP ") < 0 && select.IndexOf(Environment.NewLine + "ORDER BY ") > 0;
             string subSelect = selectClause
                                + (needsTopClause ? "TOP 100 PERCENT " : "") // If order by in original select without TOP clause, need TOP
                                + subSelectSB; // Append just the primary keys.
             subSelect = subSelect.Substring(0, subSelect.Length - 2); // Remove last ', '
 
-            subSelect += select.Substring(select.IndexOf("\r\nFROM ")); // Create a sub SELECT that *only* includes the primary key fields
+            subSelect += select.Substring(select.IndexOf(Environment.NewLine + "FROM ")); // Create a sub SELECT that *only* includes the primary key fields
 
-            string batchJoin = String.Format("FROM {0} AS j0 INNER JOIN (\r\n\r\n{1}\r\n\r\n) AS j1 ON ({2})\r\n", table.GetDbName(), subSelect, join);
+            string batchJoin = String.Format("FROM {0} AS j0 INNER JOIN ({3}{3}{1}{3}{3}) AS j1 ON ({2}){3}", table.GetDbName(), subSelect, join, Environment.NewLine);
             return batchJoin;
         }
 
@@ -276,7 +277,7 @@ namespace CodeSmith.Data.Linq
             DbCommand selectCmd = table.Context.GetCommand(selectQuery);
             string selectStmt = selectCmd.CommandText;
             selectStmt = selectStmt.Substring(7, // Remove 'SELECT ' from front ( 7 )
-                                              selectStmt.IndexOf("\r\nFROM ") - 7) // Return only the selection field expression
+                                              selectStmt.IndexOf(Environment.NewLine + "FROM ") - 7) // Return only the selection field expression
                 .Replace("[t0].", "") // Remove table alias from the select
                 .Replace(" AS [value]", "") // If the select is not a direct field (constant or expression), remove the field alias
                 .Replace("@p", "@p" + bindingName); // Replace parameter name so doesn't conflict with existing ones.

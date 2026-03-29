@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using CodeSmith.Data;
 using CodeSmith.Data.LinqToSql;
 
 namespace CodeSmith.Data.Linq
@@ -11,6 +12,11 @@ namespace CodeSmith.Data.Linq
     /// </summary>
     public static class UtilityExtensions
     {
+        public static IDataContext GetDataContext(this IQueryable query)
+        {
+            return DataContextProvider.GetDataConext(query);
+        }
+
         /// <summary>
         /// Specifies the related objects to include in the query results.
         /// </summary>

@@ -2,12 +2,14 @@
 using System.Data.Linq;
 using System.Linq;
 using System.Reflection;
+#if !STANDALONE
 using CodeSmith.Data.Future;
+#endif
 
 namespace CodeSmith.Data.LinqToSql
 {
     /// <summary>
-    /// 
+    ///
     /// </summary>
     public class LinqToSqlDataContextProvider : IDataContextProvider
     {
@@ -34,6 +36,7 @@ namespace CodeSmith.Data.LinqToSql
             return GetDataContext(query) as IDataContext;
         }
 
+#if !STANDALONE
         /// <summary>
         /// Gets the Future Context.
         /// </summary>
@@ -43,5 +46,6 @@ namespace CodeSmith.Data.LinqToSql
         {
             return GetDataContext(query) as IFutureContext;
         }
+#endif
     }
 }

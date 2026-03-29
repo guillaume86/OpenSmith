@@ -4,16 +4,37 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>CodeSmith.Data.LinqToSql</RootNamespace>
     <AssemblyName>CodeSmith.Data.LinqToSql</AssemblyName>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Standalone>true</Standalone>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- Pass /p:Standalone=true to build a minimal version without CodeSmith.Data dependency -->
+  <PropertyGroup Condition="'$(Standalone)' == 'true'">
+    <DefineConstants>$(DefineConstants);STANDALONE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Standalone)' != 'true'">
     <ProjectReference Include="..\CodeSmith.Data\CodeSmith.Data.csproj" />
+  </ItemGroup>
+
+  <!-- Exclude Future and cache extensions in standalone mode -->
+  <ItemGroup Condition="'$(Standalone)' == 'true'">
+    <Compile Remove="Future\**" />
+    <Compile Remove="Extensions\CacheSettingsExtensions.cs" />
+    <Compile Remove="Extensions\FromCacheExtensions.cs" />
+    <Compile Remove="Extensions\FromCacheFirstOrDefaultExtensions.cs" />
+    <Compile Remove="Extensions\FutureCacheCountExtensions.cs" />
+    <Compile Remove="Extensions\FutureCacheExtensions.cs" />
+    <Compile Remove="Extensions\FutureCacheFirstOrDefaultExtensions.cs" />
+    <!-- Include shared types from CodeSmith.Data as linked files -->
+    <Compile Include="..\CodeSmith.Data\DataContext\DataContextProvider.cs" Link="Standalone\DataContextProvider.cs" />
+    <Compile Include="..\CodeSmith.Data\DataContext\IDataContext.cs" Link="Standalone\IDataContext.cs" />
+    <Compile Include="..\CodeSmith.Data\DataContext\IDataContextProvider.cs" Link="Standalone\IDataContextProvider.cs" />
+    <Compile Include="..\CodeSmith.Data\Linq\ExpressionVisitor.cs" Link="Standalone\ExpressionVisitor.cs" />
+    <Compile Include="..\CodeSmith.Data\ILinqEntity.cs" Link="Standalone\ILinqEntity.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="netcore-System.Data.Linq" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.*" />
   </ItemGroup>
 
 </Project>

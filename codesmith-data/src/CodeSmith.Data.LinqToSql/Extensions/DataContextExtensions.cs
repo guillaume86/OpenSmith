@@ -295,7 +295,7 @@ namespace CodeSmith.Data.Linq
             // Work around issue with DataContext.Translate not supporting column aliases.
 
             // find the first from
-            int fromIndex = sql.IndexOf("\r\nFROM ");
+            int fromIndex = sql.IndexOf(Environment.NewLine + "FROM ");
 
             string selectText = sql.Substring(0, fromIndex);
             string fromText = sql.Substring(fromIndex);
