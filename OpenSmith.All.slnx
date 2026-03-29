@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/opensmith/src/">
+    <Project Path="opensmith/src/OpenSmith/OpenSmith.csproj" />
+    <Project Path="opensmith/src/OpenSmith.Compilation/OpenSmith.Compilation.csproj" />
+    <Project Path="opensmith/src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj" />
+    <Project Path="opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj" />
+  </Folder>
+  <Folder Name="/opensmith/test/">
+    <Project Path="opensmith/test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
+    <Project Path="opensmith/test/OpenSmith.Compilation.Tests/OpenSmith.Compilation.Tests.csproj" />
+    <Project Path="opensmith/test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/plinqo/src/">
+    <Project Path="plinqo/src/Dbml/Dbml.csproj" />
+    <Project Path="plinqo/src/Generator/Generator.csproj" />
+    <Project Path="plinqo/src/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj" />
+  </Folder>
+  <Folder Name="/plinqo/test/">
+    <Project Path="plinqo/test/OpenSmith.Plinqo.Tests/OpenSmith.Plinqo.Tests.csproj" />
+  </Folder>
+</Solution>
