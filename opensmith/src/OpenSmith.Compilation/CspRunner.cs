@@ -47,6 +47,7 @@ public class CspRunner
 
         // Create custom ALC for runtime assembly + native library resolution
         var alc = new TemplateAssemblyLoadContext(publisher.PublishDirectory!);
+        TemplateAssemblyLoadContext.Current = alc;
         PropertyDeserializer.SetLoadContext(alc);
 
         var originalDir = Directory.GetCurrentDirectory();

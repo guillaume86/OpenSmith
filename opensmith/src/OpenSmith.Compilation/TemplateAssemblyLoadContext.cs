@@ -13,24 +13,50 @@ public class TemplateAssemblyLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver? _resolver;
     private readonly string _publishDir;
+    private readonly HashSet<string> _hostAssemblyNames;
+
+    /// <summary>
+    /// The current instance, set during CspRunner execution so that TemplateCompiler
+    /// can load compiled template assemblies into this context.
+    /// </summary>
+    public static TemplateAssemblyLoadContext? Current { get; set; }
 
     public TemplateAssemblyLoadContext(string publishDir)
         : base("OpenSmith.Templates", isCollectible: false)
     {
         _publishDir = publishDir;
 
-        // Find a .deps.json to initialize the resolver
-        var depsFiles = Directory.GetFiles(publishDir, "*.deps.json");
-        if (depsFiles.Length > 0)
+        // Snapshot assemblies already loaded in the default ALC so we never shadow them.
+        // This is critical: if we load OpenSmith.dll from the publish dir, CodeTemplateBase
+        // becomes a different Type and IsAssignableFrom checks fail.
+        _hostAssemblyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var asm in Default.Assemblies)
         {
-            var mainDll = Path.ChangeExtension(depsFiles[0], ".dll");
-            if (File.Exists(mainDll))
-                _resolver = new AssemblyDependencyResolver(mainDll);
+            var name = asm.GetName().Name;
+            if (name != null)
+                _hostAssemblyNames.Add(name);
+        }
+
+        // Find a .deps.json to initialize the resolver
+        if (!string.IsNullOrEmpty(publishDir) && Directory.Exists(publishDir))
+        {
+            var depsFiles = Directory.GetFiles(publishDir, "*.deps.json");
+            if (depsFiles.Length > 0)
+            {
+                var mainDll = Path.ChangeExtension(depsFiles[0], ".dll");
+                if (File.Exists(mainDll))
+                    _resolver = new AssemblyDependencyResolver(mainDll);
+            }
         }
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        // Never shadow assemblies already loaded by the host (e.g., OpenSmith.dll).
+        // Returning null falls back to the default ALC.
+        if (assemblyName.Name != null && _hostAssemblyNames.Contains(assemblyName.Name))
+            return null;
+
         // Try the resolver first (reads .deps.json for correct resolution)
         if (_resolver != null)
         {
@@ -40,16 +66,14 @@ public class TemplateAssemblyLoadContext : AssemblyLoadContext
         }
 
         // Fallback: direct file probe in publish directory
-        var name = assemblyName.Name;
-        if (name != null)
+        if (assemblyName.Name != null)
         {
-            var dllPath = Path.Combine(_publishDir, name + ".dll");
+            var dllPath = Path.Combine(_publishDir, assemblyName.Name + ".dll");
             if (File.Exists(dllPath))
                 return LoadFromAssemblyPath(dllPath);
         }
 
         // Return null to fall back to the default ALC
-        // (this is how host assemblies like OpenSmith.dll are found)
         return null;
     }
 

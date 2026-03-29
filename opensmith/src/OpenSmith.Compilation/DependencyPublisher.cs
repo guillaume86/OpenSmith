@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -110,6 +111,11 @@ public class DependencyPublisher
         using var sha = SHA256.Create();
         var sb = new StringBuilder();
 
+        // Include RID since different platforms produce different publish outputs
+        sb.Append("rid:");
+        sb.Append(RuntimeInformation.RuntimeIdentifier);
+        sb.Append('\n');
+
         // Include manifest package info
         if (manifest != null)
         {
@@ -167,7 +173,7 @@ public class DependencyPublisher
 
     /// <summary>
     /// Copies nuget.config from the template directory (or its ancestors) to the temp directory,
-    /// so custom/local NuGet feeds are available during restore.
+    /// resolving relative feed paths to absolute paths so they work from the temp location.
     /// </summary>
     private static void CopyNuGetConfig(string templateDir, string tempDir)
     {
@@ -175,18 +181,36 @@ public class DependencyPublisher
         while (dir != null)
         {
             var configPath = Path.Combine(dir, "nuget.config");
+            if (!File.Exists(configPath))
+            {
+                // Also check NuGet.Config (case variation common on Windows)
+                configPath = Path.Combine(dir, "NuGet.Config");
+            }
+
             if (File.Exists(configPath))
             {
-                File.Copy(configPath, Path.Combine(tempDir, "nuget.config"), overwrite: true);
+                var configDir = Path.GetDirectoryName(Path.GetFullPath(configPath))!;
+                var xml = System.Xml.Linq.XDocument.Load(configPath);
+
+                // Resolve relative paths in <packageSources> <add value="..." /> to absolute paths
+                var sources = xml.Root?.Element("packageSources");
+                if (sources != null)
+                {
+                    foreach (var add in sources.Elements("add"))
+                    {
+                        var value = add.Attribute("value")?.Value;
+                        if (value == null || value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        // Resolve relative path against the original config location
+                        var absolutePath = Path.GetFullPath(Path.Combine(configDir, value));
+                        add.SetAttributeValue("value", absolutePath);
+                    }
+                }
+
+                xml.Save(Path.Combine(tempDir, "nuget.config"));
                 return;
             }
-            // Also check NuGet.Config (case variation common on Windows)
-            configPath = Path.Combine(dir, "NuGet.Config");
-            if (File.Exists(configPath))
-            {
-                File.Copy(configPath, Path.Combine(tempDir, "nuget.config"), overwrite: true);
-                return;
-            }
+
             var parent = Path.GetDirectoryName(dir);
             if (parent == dir) break;
             dir = parent;
@@ -198,7 +222,7 @@ public class DependencyPublisher
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"publish -o \"{outputDir}\" -c Release --nologo -v quiet",
+            Arguments = $"publish -o \"{outputDir}\" -c Release --nologo -v quiet -r {RuntimeInformation.RuntimeIdentifier} --self-contained false",
             WorkingDirectory = projectDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

@@ -90,7 +90,17 @@ public class TemplateCompiler
 
     private static Dictionary<string, Type> LoadAssemblyTypes(byte[] assemblyBytes)
     {
-        var assembly = Assembly.Load(assemblyBytes);
+        Assembly assembly;
+        var alc = TemplateAssemblyLoadContext.Current;
+        if (alc != null)
+        {
+            using var ms = new MemoryStream(assemblyBytes);
+            assembly = alc.LoadFromStream(ms);
+        }
+        else
+        {
+            assembly = Assembly.Load(assemblyBytes);
+        }
 
         var typeMap = new Dictionary<string, Type>();
         foreach (var type in assembly.GetTypes())

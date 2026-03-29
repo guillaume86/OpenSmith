@@ -23,9 +23,17 @@
           DestinationFiles="@(_PlinqoTemplateFiles->'$(PlinqoTemplateDestination)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
 
-    <!-- Write manifest so the CLI can discover the source NuGet package -->
+    <!-- Write manifest so the CLI can discover the source NuGet package.
+         $(MSBuildThisFileName) = "OpenSmith.Plinqo" (derived from the .targets filename).
+         Version is extracted from the NuGet cache path: .../opensmith.plinqo/<version>/build/
+         $(PackageId) would resolve to the *consumer* project's ID, not ours. -->
     <PropertyGroup>
-      <_OpenSmithManifest>{ "package": "$(PackageId)", "version": "$(PackageVersion)" }</_OpenSmithManifest>
+      <_OpenSmithPkgName>$(MSBuildThisFileName)</_OpenSmithPkgName>
+      <!-- Path is .../opensmith.plinqo/<version>/build/ — go up two levels to get the version dir -->
+      <_OpenSmithPkgBuildDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileDirectory)'))</_OpenSmithPkgBuildDir>
+      <_OpenSmithPkgVersionDir>$([System.IO.Path]::GetDirectoryName('$(_OpenSmithPkgBuildDir)'))</_OpenSmithPkgVersionDir>
+      <_OpenSmithPkgVersion>$([System.IO.Path]::GetFileName('$(_OpenSmithPkgVersionDir)'))</_OpenSmithPkgVersion>
+      <_OpenSmithManifest>{ "package": "$(_OpenSmithPkgName)", "version": "$(_OpenSmithPkgVersion)" }</_OpenSmithManifest>
     </PropertyGroup>
     <WriteLinesToFile
       File="$(PlinqoTemplateDestination).opensmith.json"
