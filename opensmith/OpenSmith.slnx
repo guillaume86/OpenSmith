@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenSmith/OpenSmith.csproj" />
+    <Project Path="src/OpenSmith.Compilation/OpenSmith.Compilation.csproj" />
+    <Project Path="src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj" />
+    <Project Path="src/OpenSmith.Cli/OpenSmith.Cli.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
+    <Project Path="test/OpenSmith.Compilation.Tests/OpenSmith.Compilation.Tests.csproj" />
+    <Project Path="test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj" />
+  </Folder>
+</Solution>

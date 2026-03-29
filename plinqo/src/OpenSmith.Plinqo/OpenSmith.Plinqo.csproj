@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <Description>PLINQO templates for OpenSmith code generation. Generates LINQ to SQL entities, data contexts, and managers from a SQL Server database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dbml\Dbml.csproj" />
+    <ProjectReference Include="..\Generator\Generator.csproj" />
+    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
+    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
+  </ItemGroup>
+
+  <!-- Include templates as content files that get copied to consuming projects -->
+  <ItemGroup>
+    <Content Include="Templates\**\*.cst" PackagePath="contentFiles\any\any\Templates\Plinqo\" BuildAction="None" CopyToOutput="false" />
+    <Content Include="Templates\**\*.cs" PackagePath="contentFiles\any\any\Templates\Plinqo\" BuildAction="None" CopyToOutput="false" />
+    <Content Include="Templates\Sample-Generator.csp" PackagePath="contentFiles\any\any\" BuildAction="None" CopyToOutput="false" />
+  </ItemGroup>
+
+  <!-- Exclude template files from compilation -->
+  <ItemGroup>
+    <Compile Remove="Templates\**" />
+    <None Include="Templates\**" />
+  </ItemGroup>
+
+</Project>

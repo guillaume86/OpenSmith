@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dbml/Dbml.csproj" />
+    <Project Path="src/Generator/Generator.csproj" />
+    <Project Path="src/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/OpenSmith.Plinqo.Tests/OpenSmith.Plinqo.Tests.csproj" />
+  </Folder>
+</Solution>

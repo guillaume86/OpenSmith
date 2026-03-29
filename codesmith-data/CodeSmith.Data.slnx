@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CodeSmith.Data/CodeSmith.Data.csproj" />
+    <Project Path="src/CodeSmith.Data.LinqToSql/CodeSmith.Data.LinqToSql.csproj" />
+    <Project Path="src/CodeSmith.Data.Memcached/CodeSmith.Data.Memcached.csproj" />
+  </Folder>
+</Solution>
