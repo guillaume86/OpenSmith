@@ -10,10 +10,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OpenSmith.Compilation\OpenSmith.Compilation.csproj" />
-    <!-- Runtime dependencies needed for template assembly resolution -->
-    <ProjectReference Include="..\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
-    <ProjectReference Include="..\..\..\plinqo\src\Dbml\Dbml.csproj" />
-    <ProjectReference Include="..\..\..\plinqo\src\Generator\Generator.csproj" />
   </ItemGroup>
 
 </Project>

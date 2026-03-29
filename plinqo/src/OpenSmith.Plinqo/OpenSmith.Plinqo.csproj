@@ -4,14 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <DevelopmentDependency>true</DevelopmentDependency>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <Description>PLINQO templates for OpenSmith code generation. Generates LINQ to SQL entities, data contexts, and managers from a SQL Server database.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dbml\Dbml.csproj" />
-    <ProjectReference Include="..\Generator\Generator.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
+    <ProjectReference Include="..\Dbml\Dbml.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Generator\Generator.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- Pack templates + targets into the NuGet package -->
@@ -24,5 +25,29 @@
   <ItemGroup>
     <Compile Remove="Templates\**" />
   </ItemGroup>
+
+  <!-- Bundle all project reference DLLs into the package so the CLI can resolve them from a single location -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+    <ItemGroup>
+      <!-- Include project reference DLLs and their transitive NuGet package DLLs -->
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Bundle platform-specific native DLLs (e.g. Microsoft.Data.SqlClient.SNI) into the package.
+       These files only exist after build, so we use a target to collect them. -->
+  <Target Name="_PackRuntimeNativeAssets" AfterTargets="Build" BeforeTargets="$(GenerateNuspecDependsOn)">
+    <ItemGroup>
+      <_RuntimeFile Include="$(TargetDir)runtimes\**\*" />
+      <Content Include="@(_RuntimeFile)" Pack="true"
+        PackagePath="runtimes"
+        CopyToOutputDirectory="Never" />
+    </ItemGroup>
+  </Target>
 
 </Project>

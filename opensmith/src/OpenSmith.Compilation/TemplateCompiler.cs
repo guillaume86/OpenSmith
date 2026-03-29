@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using OpenSmith.Engine;
@@ -12,14 +11,18 @@ namespace OpenSmith.Compilation;
 public class TemplateCompiler
 {
     private readonly List<MetadataReference> _references;
+    private readonly List<string> _probePaths;
 
     /// <summary>
     /// Creates a compiler that resolves the given assembly names (from template directives)
     /// in addition to standard runtime and OpenSmith assemblies.
     /// </summary>
-    public TemplateCompiler(IEnumerable<string>? assemblyNames = null)
+    /// <param name="assemblyNames">Assembly names from template directives.</param>
+    /// <param name="probePaths">Additional directories to scan for assemblies (e.g. consumer project build output).</param>
+    public TemplateCompiler(IEnumerable<string>? assemblyNames = null, IEnumerable<string>? probePaths = null)
     {
-        _references = BuildMetadataReferences(assemblyNames ?? []);
+        _probePaths = [AppContext.BaseDirectory, .. probePaths ?? []];
+        _references = BuildMetadataReferences(assemblyNames ?? [], _probePaths);
     }
 
     /// <summary>
@@ -86,8 +89,7 @@ public class TemplateCompiler
 
     private static Dictionary<string, Type> LoadAssemblyTypes(byte[] assemblyBytes)
     {
-        var loadContext = new AssemblyLoadContext(null, isCollectible: true);
-        var assembly = loadContext.LoadFromStream(new MemoryStream(assemblyBytes));
+        var assembly = Assembly.Load(assemblyBytes);
 
         var typeMap = new Dictionary<string, Type>();
         foreach (var type in assembly.GetTypes())
@@ -113,7 +115,8 @@ public class TemplateCompiler
         return sourceContent;
     }
 
-    private static List<MetadataReference> BuildMetadataReferences(IEnumerable<string> assemblyNames)
+    private static List<MetadataReference> BuildMetadataReferences(
+        IEnumerable<string> assemblyNames, IEnumerable<string> probePaths)
     {
         var refs = new List<MetadataReference>();
         var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -171,11 +174,20 @@ public class TemplateCompiler
                 AddRef(asm.Location);
         }
 
-        // Also scan the application base directory for assemblies not yet loaded
+        // Scan the application base directory for assemblies not yet loaded
         var appDir = AppContext.BaseDirectory;
         foreach (var name in requestedNames)
         {
             AddRef(Path.Combine(appDir, name + ".dll"));
+        }
+
+        // Scan additional probe directories (e.g. consumer project build output)
+        foreach (var dir in probePaths)
+        {
+            foreach (var name in requestedNames)
+            {
+                AddRef(Path.Combine(dir, name + ".dll"));
+            }
         }
 
         return refs;
