@@ -20,9 +20,24 @@ public class TemplateCompiler
 
     /// <summary>
     /// Compiles the given C# source strings into an assembly and returns a map of class name to Type.
+    /// When a cache is provided, attempts to load a previously compiled assembly before invoking Roslyn.
     /// </summary>
-    public Dictionary<string, Type> Compile(Dictionary<string, string> sources)
+    public Dictionary<string, Type> Compile(Dictionary<string, string> sources, TemplateCompilationCache? cache = null)
     {
+        // Try cache first
+        string? hash = null;
+        if (cache != null)
+        {
+            hash = cache.ComputeHash(sources);
+            if (cache.TryLoadCached(hash, out var cachedBytes))
+            {
+                CacheHit = true;
+                return LoadAssemblyTypes(cachedBytes);
+            }
+        }
+
+        CacheHit = false;
+
         var syntaxTrees = new List<SyntaxTree>();
         foreach (var (name, source) in sources)
         {
@@ -51,9 +66,24 @@ public class TemplateCompiler
             throw new TemplateCompilationException(errors);
         }
 
-        ms.Seek(0, SeekOrigin.Begin);
+        var assemblyBytes = ms.ToArray();
+
+        // Store in cache
+        if (cache != null && hash != null)
+            cache.Store(hash, assemblyBytes);
+
+        return LoadAssemblyTypes(assemblyBytes);
+    }
+
+    /// <summary>
+    /// Indicates whether the last Compile call was a cache hit. Null if no cache was used.
+    /// </summary>
+    public bool? CacheHit { get; private set; }
+
+    private static Dictionary<string, Type> LoadAssemblyTypes(byte[] assemblyBytes)
+    {
         var loadContext = new AssemblyLoadContext(null, isCollectible: true);
-        var assembly = loadContext.LoadFromStream(ms);
+        var assembly = loadContext.LoadFromStream(new MemoryStream(assemblyBytes));
 
         var typeMap = new Dictionary<string, Type>();
         foreach (var type in assembly.GetTypes())

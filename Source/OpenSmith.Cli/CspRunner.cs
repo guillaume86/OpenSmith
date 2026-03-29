@@ -8,10 +8,12 @@ namespace OpenSmith.Cli;
 public class CspRunner
 {
     private readonly bool _verbose;
+    private readonly TemplateCompilationCache _cache;
 
-    public CspRunner(bool verbose = false)
+    public CspRunner(bool verbose = false, bool useCache = true)
     {
         _verbose = verbose;
+        _cache = useCache ? new TemplateCompilationCache() : null;
     }
 
     public void Run(string cspPath)
@@ -95,11 +97,17 @@ public class CspRunner
             }
         }
 
-        // 4. Compile all templates into one assembly
+        // 4. Compile all templates into one assembly (with optional cache)
         var compiler = new TemplateCompiler();
-        var typeMap = compiler.Compile(sources);
+        var typeMap = compiler.Compile(sources, _cache);
 
-        Log($"  Compiled {typeMap.Count} template type(s)");
+        var cacheStatus = compiler.CacheHit switch
+        {
+            true => " (cached)",
+            false => " (compiled)",
+            _ => "",
+        };
+        Log($"  Compiled {typeMap.Count} template type(s){cacheStatus}");
 
         // 5. Instantiate root template
         if (!typeMap.TryGetValue(rootClassName, out var rootType))

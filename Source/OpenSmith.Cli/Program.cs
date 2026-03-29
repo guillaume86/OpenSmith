@@ -6,12 +6,13 @@ public class Program
     {
         if (args.Length < 1)
         {
-            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose]");
+            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose] [--no-cache]");
             return 1;
         }
 
         var cspPath = args[0];
         var verbose = args.Contains("--verbose");
+        var useCache = !args.Contains("--no-cache");
 
         if (!File.Exists(cspPath))
         {
@@ -21,7 +22,7 @@ public class Program
 
         try
         {
-            var runner = new CspRunner(verbose);
+            var runner = new CspRunner(verbose, useCache);
             runner.Run(cspPath);
             return 0;
         }
