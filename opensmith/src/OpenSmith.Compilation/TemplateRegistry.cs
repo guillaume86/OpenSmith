@@ -40,7 +40,8 @@ public class TemplateRegistry
             if (Entries.ContainsKey(reg.Name))
                 continue;
 
-            var templatePath = Path.GetFullPath(Path.Combine(baseDir, reg.Template));
+            var normalizedTemplate = reg.Template.Replace('\\', Path.DirectorySeparatorChar);
+            var templatePath = Path.GetFullPath(Path.Combine(baseDir, normalizedTemplate));
             if (!File.Exists(templatePath))
                 continue;
 

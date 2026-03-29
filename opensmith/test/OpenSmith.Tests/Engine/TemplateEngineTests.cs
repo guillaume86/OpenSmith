@@ -307,7 +307,7 @@ public class TemplateEngineTests
             template.Response.Write("hello");
             template.Response.WriteLine("world");
 
-            Assert.Equal("helloworld\r\n", sb.ToString());
+            Assert.Equal("helloworld" + Environment.NewLine, sb.ToString());
         }
 
         [Fact]
@@ -319,7 +319,7 @@ public class TemplateEngineTests
 
             template.Response.WriteLine("{0} = {1}", "key", "value");
 
-            Assert.Equal("key = value\r\n", sb.ToString());
+            Assert.Equal("key = value" + Environment.NewLine, sb.ToString());
         }
 
         [Fact]
