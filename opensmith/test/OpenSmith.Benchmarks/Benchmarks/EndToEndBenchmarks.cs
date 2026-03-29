@@ -21,34 +21,9 @@ public class EndToEndBenchmarks
     public Dictionary<string, Type> FullPipeline_Dbml() =>
         RunPipeline("Dbml.cst");
 
-    [Benchmark]
-    public Dictionary<string, Type> FullPipeline_MassiveIncludeList_Entities() =>
-        RunCspPipeline(
-            Path.Combine(BenchmarkTestContext.RepoRoot, "DiffTest-MassiveIncludeList", "SampleDb-Generator.csp"),
-            "Entities");
-
-    [Benchmark]
-    public Dictionary<string, Type> FullPipeline_MassiveIncludeList_Dbml() =>
-        RunCspPipeline(
-            Path.Combine(BenchmarkTestContext.RepoRoot, "DiffTest-MassiveIncludeList", "SampleDb-Generator.csp"),
-            "Dbml");
-
     private static Dictionary<string, Type> RunPipeline(string templateRelativePath)
     {
         var templatePath = BenchmarkTestContext.GetTemplatePath(templateRelativePath);
-        return RunPipelineForTemplate(templatePath);
-    }
-
-    private static Dictionary<string, Type> RunCspPipeline(string cspPath, string propertySetName)
-    {
-        // Step 0: Parse CSP and resolve template path
-        var cspXml = File.ReadAllText(cspPath);
-        var project = CspParser.Parse(cspXml);
-        var cspDir = Path.GetDirectoryName(cspPath)!;
-        var propertySet = project.PropertySets.First(ps =>
-            ps.Name.Equals(propertySetName, StringComparison.OrdinalIgnoreCase));
-        var templatePath = Path.GetFullPath(Path.Combine(cspDir, propertySet.TemplatePath));
-
         return RunPipelineForTemplate(templatePath);
     }
 

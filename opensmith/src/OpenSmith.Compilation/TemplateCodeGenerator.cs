@@ -93,7 +93,8 @@ public class TemplateCodeGenerator
         foreach (var prop in template.Properties)
         {
             var typeName = ResolveType(prop.TypeName ?? "string");
-            sb.AppendLine($"    public {typeName} {prop.Name} {{ get; set; }}");
+            var initializer = GetDefaultInitializer(typeName);
+            sb.AppendLine($"    public {typeName} {prop.Name} {{ get; set; }}{initializer}");
             emittedProperties.Add(prop.Name);
         }
 
@@ -130,7 +131,8 @@ public class TemplateCodeGenerator
                     if (scriptDefinedMembers.Contains(subProp.Name)) continue;
 
                     var typeName = ResolveType(subProp.TypeName ?? "string");
-                    sb.AppendLine($"    public {typeName} {subProp.Name} {{ get; set; }}");
+                    var initializer = GetDefaultInitializer(typeName);
+                    sb.AppendLine($"    public {typeName} {subProp.Name} {{ get; set; }}{initializer}");
                     emittedProperties.Add(subProp.Name);
                 }
             }
@@ -198,6 +200,13 @@ public class TemplateCodeGenerator
             return rewritten;
         return typeName;
     }
+
+    private static string GetDefaultInitializer(string typeName) => typeName switch
+    {
+        "List<string>" => " = new();",
+        "string" => " = \"\";",
+        _ => "",
+    };
 
     private static string? GenerateMapProperty(MapDirective map)
     {

@@ -255,7 +255,7 @@ public class TemplateEngineTests
     {
         private class TestTemplate : CodeTemplateBase
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = "";
             public int Count { get; set; }
         }
 

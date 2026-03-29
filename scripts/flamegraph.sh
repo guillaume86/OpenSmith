@@ -6,16 +6,15 @@
 #   dotnet tool install -g dotnet-trace
 #
 # Usage:
-#   ./scripts/flamegraph.sh                              # trace DiffTest/SampleDb-Generator.csp
 #   ./scripts/flamegraph.sh path/to/your.csp             # trace a specific .csp file
 #   ./scripts/flamegraph.sh path/to/your.csp --no-cache  # trace without compilation cache
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CLI_PROJECT="$REPO_ROOT/Source/OpenSmith.Cli/OpenSmith.Cli.csproj"
+CLI_PROJECT="$REPO_ROOT/opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj"
 OUT_DIR="$REPO_ROOT/artifacts/traces"
 
-CSP_FILE="${1:-$REPO_ROOT/DiffTest/SampleDb-Generator.csp}"
+CSP_FILE="${1:?Usage: $0 <path/to/your.csp> [extra-args...]}"
 shift 2>/dev/null || true
 EXTRA_ARGS=("$@")
 

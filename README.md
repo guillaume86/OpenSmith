@@ -1,4 +1,4 @@
-# PLINQO-core
+# OpenSmith
 
 A minimal .NET reimplementation of the [CodeSmith Generator](https://www.codesmithtools.com/) template engine and [PLINQO](https://github.com/codesmithtools/Templates) (Professional LINQ to Objects) code generation templates.
 
@@ -8,12 +8,12 @@ The original CodeSmith Generator is a proprietary, Windows-only code generation 
 
 The repository is organised into three independent solutions (plus a root roll-up):
 
-| Solution | Path | Description |
-|----------|------|-------------|
-| **OpenSmith** | [`opensmith/`](opensmith/) | Template engine, Roslyn-based compiler, and SQL Server schema explorer |
-| **OpenSmith.Plinqo** | [`plinqo/`](plinqo/) | DBML object model, database-to-DBML generator, and PLINQO code generation templates |
-| **CodeSmith.Data** | [`codesmith-data/`](codesmith-data/) | Legacy data access library used by generated LINQ to SQL code |
-| **OpenSmith.All** | `OpenSmith.All.slnx` | Root solution containing all projects |
+| Solution             | Path                                 | Description                                                                         |
+| -------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| **OpenSmith**        | [`opensmith/`](opensmith/)           | Template engine, Roslyn-based compiler, and SQL Server schema explorer              |
+| **OpenSmith.Plinqo** | [`plinqo/`](plinqo/)                 | DBML object model, database-to-DBML generator, and PLINQO code generation templates |
+| **CodeSmith.Data**   | [`codesmith-data/`](codesmith-data/) | Legacy data access library used by generated LINQ to SQL code                       |
+| **OpenSmith.All**    | `OpenSmith.All.slnx`                 | Root solution containing all projects                                               |
 
 ## Getting Started
 

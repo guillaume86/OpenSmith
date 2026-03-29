@@ -8,7 +8,7 @@ namespace OpenSmith.Compilation;
 public class CspRunner
 {
     private readonly bool _verbose;
-    private readonly TemplateCompilationCache _cache;
+    private readonly TemplateCompilationCache? _cache;
 
     public CspRunner(bool verbose = false, bool useCache = true)
     {

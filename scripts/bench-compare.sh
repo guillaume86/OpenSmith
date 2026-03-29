@@ -8,7 +8,7 @@
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECT="Test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj"
+PROJECT="opensmith/test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj"
 
 if [ $# -lt 3 ]; then
     echo "Usage: $0 <base-ref> <head-ref> <filter>"

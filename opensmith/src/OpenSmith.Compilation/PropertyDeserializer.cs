@@ -122,6 +122,18 @@ public static class PropertyDeserializer
             if (providerType != null) break;
         }
 
+        // If not found, try loading the assembly from the application directory
+        if (providerType == null && parts.Length > 1)
+        {
+            var assemblyName = parts[1];
+            var assemblyPath = Path.Combine(AppContext.BaseDirectory, assemblyName + ".dll");
+            if (File.Exists(assemblyPath))
+            {
+                var loaded = Assembly.LoadFrom(assemblyPath);
+                providerType = loaded.GetType(typeName);
+            }
+        }
+
         if (providerType == null)
             throw new InvalidOperationException($"Could not resolve provider type '{typeName}'. Ensure the assembly containing it is referenced.");
 

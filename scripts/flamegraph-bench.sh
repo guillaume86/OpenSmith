@@ -11,7 +11,7 @@
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECT="$REPO_ROOT/Test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj"
+PROJECT="$REPO_ROOT/opensmith/test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj"
 
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <filter> [extra-args...]"
