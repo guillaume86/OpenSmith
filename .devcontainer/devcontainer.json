@@ -1,0 +1,19 @@
+{
+  "name": "OpenSmith",
+  "image": "mcr.microsoft.com/dotnet/sdk:10.0",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "Anthropic.claude-code"
+      ]
+    }
+  },
+  "containerEnv": {
+    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
+  },
+  "postCreateCommand": "dotnet restore OpenSmith.All.slnx"
+}
