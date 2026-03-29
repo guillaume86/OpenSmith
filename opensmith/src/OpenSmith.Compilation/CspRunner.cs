@@ -148,7 +148,27 @@ public class CspRunner
         // 7. Execute template (RenderToString triggers Generate() via template body)
         template.RenderToString();
 
+        // 8. Log registered outputs and references
+        LogPostExecution(template, _verbose, Log);
+
         Log($"  Done: {propertySet.Name}");
+    }
+
+    public static void LogPostExecution(CodeTemplateBase template, bool verbose, Action<string> log)
+    {
+        foreach (var reference in template.References)
+            log($"  WARNING: RegisterReference is not supported — ignored '{reference}'");
+
+        if (verbose)
+        {
+            foreach (var output in template.Outputs)
+            {
+                var parent = string.IsNullOrEmpty(output.ParentFileName)
+                    ? ""
+                    : $" (parent: {output.ParentFileName})";
+                log($"  Registered output: {output.FileName}{parent}");
+            }
+        }
     }
 
     private void Log(string message)
