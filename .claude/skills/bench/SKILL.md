@@ -50,7 +50,7 @@ allowed-tools: Bash(*), Read, Grep, Glob
 ### Collect a flamegraph (speedscope)
 ```bash
 # Prerequisites: dotnet tool install -g dotnet-trace
-./scripts/flamegraph.sh                                # default: DiffTest/SampleDb-Generator.csp
+./scripts/flamegraph.sh                                # requires a .csp file argument
 ./scripts/flamegraph.sh path/to/your.csp               # specific file
 ./scripts/flamegraph.sh path/to/your.csp --no-cache    # bypass compilation cache
 ```
