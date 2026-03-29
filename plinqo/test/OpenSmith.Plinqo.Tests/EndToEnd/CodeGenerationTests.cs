@@ -110,13 +110,7 @@ public class CodeGenerationTests : IDisposable
             }
         }
 
-        var assemblyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in registry.Entries.Values)
-            foreach (var asm in entry.Parsed.Assemblies)
-                if (!string.IsNullOrEmpty(asm.Name))
-                    assemblyNames.Add(asm.Name);
-
-        var compiler = new TemplateCompiler(assemblyNames);
+        var compiler = new TemplateCompiler();
         var typeMap = compiler.Compile(sources);
 
         Assert.True(typeMap.ContainsKey(rootClassName),
