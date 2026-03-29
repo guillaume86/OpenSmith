@@ -244,5 +244,5 @@ ASALocalRun/
 # BeatPulse healthance liveness check folder
 health/
 
-# Claude Code
-.claude/*.local.*
+# Local files
+*.local.*
