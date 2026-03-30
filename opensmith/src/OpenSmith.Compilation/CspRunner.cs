@@ -175,20 +175,31 @@ public class CspRunner
         var template = (CodeTemplateBase)Activator.CreateInstance(rootType)!;
         template.CodeTemplateInfo.DirectoryName = Path.GetDirectoryName(templatePath);
 
-        // 5b. Propagate schema provider hints from template <%@ Property %> directives to CSP properties
+        // 5b. Propagate schema provider hints from template <%@ Property %> directives to CSP properties.
+        // Directive attributes (e.g. DeepLoad="true" on <%@ Property %>) provide static hints.
+        // Also check for matching CSP boolean properties (e.g. IncludeViews=True in the .csp)
+        // and OR them in, so the schema provider loads views/functions when the template requests them.
         var rootParsed = registry.Entries[rootClassName].Parsed;
         foreach (var propDirective in rootParsed.Properties)
         {
             if (!propertySet.Properties.TryGetValue(propDirective.Name, out var cspProp))
                 continue;
-            if (!propDirective.DeepLoad && !propDirective.IncludeViews && !propDirective.IncludeFunctions)
+
+            bool includeViews = propDirective.IncludeViews
+                || (propertySet.Properties.TryGetValue("IncludeViews", out var ivProp)
+                    && string.Equals(ivProp.Value, "True", StringComparison.OrdinalIgnoreCase));
+            bool includeFunctions = propDirective.IncludeFunctions
+                || (propertySet.Properties.TryGetValue("IncludeFunctions", out var ifProp)
+                    && string.Equals(ifProp.Value, "True", StringComparison.OrdinalIgnoreCase));
+
+            if (!propDirective.DeepLoad && !includeViews && !includeFunctions)
                 continue;
 
             cspProp.ProviderHints = new Dictionary<string, bool>
             {
                 ["DeepLoad"] = propDirective.DeepLoad,
-                ["IncludeViews"] = propDirective.IncludeViews,
-                ["IncludeFunctions"] = propDirective.IncludeFunctions,
+                ["IncludeViews"] = includeViews,
+                ["IncludeFunctions"] = includeFunctions,
             };
         }
 

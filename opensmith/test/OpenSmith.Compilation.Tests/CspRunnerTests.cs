@@ -15,9 +15,8 @@ public class CspRunnerTests
         // Act
         CspRunner.LogPostExecution(template, verbose: false, log: msg => logs.Add(msg));
 
-        // Assert
-        Assert.Contains(logs, l => l.Contains("WARNING") && l.Contains("System.Data.Linq"));
-        Assert.Contains(logs, l => l.Contains("WARNING") && l.Contains("System.Configuration"));
+        // Assert — non-verbose mode logs a single summary warning, not individual references
+        Assert.Contains(logs, l => l.Contains("WARNING") && l.Contains("2 reference(s)"));
     }
 
     [Fact]
