@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <OpenSmithVersion>1.0.0</OpenSmithVersion>
-    <!-- Default package version for OpenSmith projects; subsystems can override. -->
-    <Version Condition="'$(Version)' == ''">$(OpenSmithVersion)</Version>
   </PropertyGroup>
 
 </Project>
