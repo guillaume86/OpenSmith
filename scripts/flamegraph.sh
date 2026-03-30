@@ -37,10 +37,17 @@ echo "Collecting trace for: $CSP_FILE"
 echo "Output: ${TRACE_FILE}.speedscope.json"
 echo ""
 
+# Resolve the compiled DLL so we trace the actual process, not the dotnet-run host.
+CLI_DLL="$(dotnet build "$CLI_PROJECT" -c Release -v q --nologo -getProperty:TargetPath)"
+if [[ ! -f "$CLI_DLL" ]]; then
+    echo "ERROR: Could not resolve compiled DLL from TargetPath: $CLI_DLL" >&2
+    exit 1
+fi
+
 dotnet-trace collect \
     --format speedscope \
     --output "$TRACE_FILE" \
-    -- dotnet run --project "$CLI_PROJECT" -c Release --no-build -- "$CSP_FILE" --verbose "${EXTRA_ARGS[@]}"
+    -- dotnet "$CLI_DLL" "$CSP_FILE" --verbose "${EXTRA_ARGS[@]}"
 
 echo ""
 echo "Trace saved to: ${TRACE_FILE}.speedscope.json"

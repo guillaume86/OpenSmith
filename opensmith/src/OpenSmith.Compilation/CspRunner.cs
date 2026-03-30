@@ -202,8 +202,10 @@ public class CspRunner
 
         // 7. Execute template (RenderToString triggers Generate() via template body)
         CodeTemplateBase.ResetCounters();
+        CodeTemplateBase.EnableDeferredWrites();
         sw.Restart();
         template.RenderToString();
+        CodeTemplateBase.FlushDeferredWrites();
         sw.Stop();
 
         var filesWritten = CodeTemplateBase.FilesWrittenCount;

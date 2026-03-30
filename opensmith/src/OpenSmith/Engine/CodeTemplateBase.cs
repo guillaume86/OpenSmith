@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenSmith.Engine;
 
@@ -22,7 +24,63 @@ public abstract class CodeTemplateBase
 
     private static int _filesWrittenCount;
     public static int FilesWrittenCount => _filesWrittenCount;
-    public static void ResetCounters() => _filesWrittenCount = 0;
+
+    private static readonly ConcurrentQueue<PendingWrite> _pendingWrites = new();
+    private static bool _deferWrites;
+
+    public static void ResetCounters()
+    {
+        _filesWrittenCount = 0;
+        // Clear any leftover pending writes
+        while (_pendingWrites.TryDequeue(out _)) { }
+    }
+
+    /// <summary>
+    /// Enables deferred-write mode: RenderToFile calls render content immediately
+    /// but queue the actual file I/O for a later parallel flush.
+    /// </summary>
+    public static void EnableDeferredWrites() => _deferWrites = true;
+
+    /// <summary>
+    /// Flushes all pending file writes in parallel, then disables deferred-write mode.
+    /// </summary>
+    public static void FlushDeferredWrites()
+    {
+        if (_pendingWrites.IsEmpty)
+        {
+            _deferWrites = false;
+            return;
+        }
+
+        // Snapshot all pending writes
+        var writes = new List<PendingWrite>();
+        while (_pendingWrites.TryDequeue(out var w))
+            writes.Add(w);
+
+        // Pre-create all needed directories (deduplicated) before parallel writes
+        var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var w in writes)
+        {
+            var dir = Path.GetDirectoryName(w.FilePath);
+            if (!string.IsNullOrEmpty(dir))
+                dirs.Add(dir);
+        }
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+        // Write all files in parallel
+        Parallel.ForEach(writes, static w =>
+        {
+            File.WriteAllText(w.FilePath, w.Content);
+        });
+
+        _deferWrites = false;
+    }
+
+    private readonly record struct PendingWrite(string FilePath, string Content);
 
     public T Create<T>() where T : CodeTemplateBase, new()
     {
@@ -80,12 +138,20 @@ public abstract class CodeTemplateBase
         if (!overwrite && File.Exists(fileName))
             return;
 
+        var content = RenderToString();
+        Interlocked.Increment(ref _filesWrittenCount);
+
+        if (_deferWrites)
+        {
+            _pendingWrites.Enqueue(new PendingWrite(fileName, content));
+            return;
+        }
+
         var dir = Path.GetDirectoryName(fileName);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
 
-        File.WriteAllText(fileName, RenderToString());
-        Interlocked.Increment(ref _filesWrittenCount);
+        File.WriteAllText(fileName, content);
     }
 
     /// <summary>
@@ -97,15 +163,22 @@ public abstract class CodeTemplateBase
         if (!overwrite && File.Exists(fileName))
             return;
 
+        var content = RenderToString();
+        if (!content.EndsWith("\n"))
+            content += "\r\n";
+        Interlocked.Increment(ref _filesWrittenCount);
+
+        if (_deferWrites)
+        {
+            _pendingWrites.Enqueue(new PendingWrite(fileName, content));
+            return;
+        }
+
         var dir = Path.GetDirectoryName(fileName);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
 
-        var content = RenderToString();
-        if (!content.EndsWith("\n"))
-            content += "\r\n";
         File.WriteAllText(fileName, content);
-        Interlocked.Increment(ref _filesWrittenCount);
     }
 
     /// <summary>
@@ -115,21 +188,30 @@ public abstract class CodeTemplateBase
     {
         var newContent = RenderToString();
 
+        string finalContent;
         if (!File.Exists(fileName))
         {
-            var dir = Path.GetDirectoryName(fileName);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
+            finalContent = newContent;
+        }
+        else
+        {
+            var existingContent = File.ReadAllText(fileName);
+            finalContent = mergeStrategy.Merge(existingContent, newContent);
+        }
 
-            File.WriteAllText(fileName, newContent);
-            Interlocked.Increment(ref _filesWrittenCount);
+        Interlocked.Increment(ref _filesWrittenCount);
+
+        if (_deferWrites)
+        {
+            _pendingWrites.Enqueue(new PendingWrite(fileName, finalContent));
             return;
         }
 
-        var existingContent = File.ReadAllText(fileName);
-        var merged = mergeStrategy.Merge(existingContent, newContent);
-        File.WriteAllText(fileName, merged);
-        Interlocked.Increment(ref _filesWrittenCount);
+        var dir = Path.GetDirectoryName(fileName);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+
+        File.WriteAllText(fileName, finalContent);
     }
 }
 
