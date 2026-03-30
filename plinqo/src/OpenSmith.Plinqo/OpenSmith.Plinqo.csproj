@@ -5,7 +5,26 @@
     <Description>PLINQO templates for OpenSmith code generation. Generates LINQ to SQL entities, data contexts, and managers from a SQL Server database.</Description>
   </PropertyGroup>
 
-  <ItemGroup>
+  <PropertyGroup>
+    <!-- Default to ProjectReference during local dev to bypass NuGet cache.
+         Override with -p:UseSdkProjectReference=false for pack/CI. -->
+    <UseSdkProjectReference Condition="'$(UseSdkProjectReference)' == ''">true</UseSdkProjectReference>
+  </PropertyGroup>
+
+  <!-- Local dev: bypass NuGet cache entirely -->
+  <ItemGroup Condition="'$(UseSdkProjectReference)' == 'true'">
+    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\OpenSmith.Sdk.TemplatePackage.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- NuGet auto-imports build/ props+targets for PackageReference but not ProjectReference.
+       Import them explicitly so template compilation exclusion and packing logic still apply. -->
+  <Import Condition="'$(UseSdkProjectReference)' == 'true'"
+          Project="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\build\OpenSmith.Sdk.TemplatePackage.props" />
+  <Import Condition="'$(UseSdkProjectReference)' == 'true'"
+          Project="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\build\OpenSmith.Sdk.TemplatePackage.targets" />
+
+  <!-- CI / pack: consume as a NuGet package -->
+  <ItemGroup Condition="'$(UseSdkProjectReference)' != 'true'">
     <PackageReference Include="OpenSmith.Sdk.TemplatePackage" Version="*" PrivateAssets="all" />
   </ItemGroup>
 

@@ -71,8 +71,13 @@ for proj in \
     opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj \
     plinqo/src/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj; do
     echo "  Packing $(basename "$(dirname "$proj")") ..."
+    EXTRA_PROPS=""
+    # Plinqo defaults to ProjectReference for local dev; force PackageReference for e2e
+    if [[ "$proj" == *"OpenSmith.Plinqo"* ]]; then
+        EXTRA_PROPS="-p:UseSdkProjectReference=false"
+    fi
     dotnet pack "$REPO_ROOT/$proj" -o "$FEED_DIR" --configuration Release \
-        -p:Version="$PACK_VERSION" > /dev/null 2>&1
+        -p:Version="$PACK_VERSION" $EXTRA_PROPS > /dev/null 2>&1
 done
 
 echo "  Packages:"
