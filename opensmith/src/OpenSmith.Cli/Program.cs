@@ -6,15 +6,27 @@ public class Program
 {
     public static int Main(string[] args)
     {
-        if (args.Length < 1)
-        {
-            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose] [--no-cache]");
-            return 1;
-        }
-
-        var cspPath = args[0];
         var verbose = args.Contains("--verbose");
         var useCache = !args.Contains("--no-cache");
+        var clearCache = args.Contains("--clear-cache");
+
+        var knownFlags = new[] { "--verbose", "--no-cache", "--clear-cache" };
+        var cspPath = args.FirstOrDefault(a => !knownFlags.Contains(a));
+
+        if (clearCache)
+        {
+            Console.WriteLine("Clearing compilation cache...");
+            TemplateCompilationCache.ClearCache();
+            Console.WriteLine("Cache cleared.");
+            if (cspPath == null)
+                return 0;
+        }
+
+        if (cspPath == null)
+        {
+            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose] [--no-cache] [--clear-cache]");
+            return 1;
+        }
 
         if (!File.Exists(cspPath))
         {

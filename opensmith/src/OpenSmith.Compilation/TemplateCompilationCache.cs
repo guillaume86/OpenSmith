@@ -58,6 +58,15 @@ public class TemplateCompilationCache
 
     private string GetCachePath(string hash) => Path.Combine(_cacheDir, hash + ".dll");
 
+    public static void ClearCache()
+    {
+        var dir = GetCacheDirectory();
+        if (Directory.Exists(dir))
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static string GetCacheDirectory()
     {
         string baseDir;
