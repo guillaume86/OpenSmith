@@ -27,15 +27,15 @@ public class CompilationBenchmarks
 
     [Benchmark(Baseline = true)]
     public Dictionary<string, Type> Compile_Entities() =>
-        new TemplateCompiler().Compile(_entitiesSources);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_entitiesSources);
 
     [Benchmark]
     public Dictionary<string, Type> Compile_Dbml() =>
-        new TemplateCompiler().Compile(_dbmlSources);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_dbmlSources);
 
     [Benchmark]
     public Dictionary<string, Type> Compile_SingleTemplate() =>
-        new TemplateCompiler().Compile(_singleTemplateSources);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_singleTemplateSources);
 
     private static Dictionary<string, string> PrepareSources(string templateRelativePath)
     {

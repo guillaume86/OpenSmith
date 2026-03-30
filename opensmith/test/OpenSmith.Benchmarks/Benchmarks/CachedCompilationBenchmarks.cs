@@ -22,16 +22,16 @@ public class CachedCompilationBenchmarks
         _cache = new TemplateCompilationCache();
 
         // Prime the cache with a cold compile
-        new TemplateCompiler().Compile(_sources, _cache);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_sources, _cache);
     }
 
     [Benchmark(Baseline = true)]
     public Dictionary<string, Type> Compile_NoCache() =>
-        new TemplateCompiler().Compile(_sources);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_sources);
 
     [Benchmark]
     public Dictionary<string, Type> Compile_CacheHit() =>
-        new TemplateCompiler().Compile(_sources, _cache);
+        new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(_sources, _cache);
 
     private static Dictionary<string, string> PrepareSources(string templateRelativePath)
     {

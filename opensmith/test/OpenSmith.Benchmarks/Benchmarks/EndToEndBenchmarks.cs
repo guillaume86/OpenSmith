@@ -60,6 +60,6 @@ public class EndToEndBenchmarks
         }
 
         // Step 4: Compile all templates
-        return new TemplateCompiler().Compile(sources);
+        return new TemplateCompiler(BenchmarkTestContext.DependencyDirectory).Compile(sources);
     }
 }
