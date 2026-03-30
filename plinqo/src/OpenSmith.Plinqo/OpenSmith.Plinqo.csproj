@@ -14,12 +14,15 @@
     <!-- Explicit NuGet deps (PrivateAssets="all" on Generator suppresses its transitives) -->
     <PackageReference Include="OpenSmith" Version="$(OpenSmithVersion)" />
     <PackageReference Include="OpenSmith.SchemaExplorer" Version="$(OpenSmithVersion)" />
+    <PackageReference Include="OpenSmith.Sdk.TemplatePackage" Version="$(OpenSmithVersion)" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- Exclude template files from compilation -->
-  <ItemGroup>
-    <Compile Remove="Templates\**" />
-  </ItemGroup>
+  <!-- When using local ProjectReferences, the SDK's build files aren't auto-imported like they
+       would be from a PackageReference — import them explicitly. -->
+  <Import Condition="'$(UseLocalProjects)' == 'true'"
+          Project="$(OpenSmithRoot)/OpenSmith.Sdk.TemplatePackage/build/OpenSmith.Sdk.TemplatePackage.props" />
+  <Import Condition="'$(UseLocalProjects)' == 'true'"
+          Project="$(OpenSmithRoot)/OpenSmith.Sdk.TemplatePackage/build/OpenSmith.Sdk.TemplatePackage.targets" />
 
   <!-- Pack Generator.dll and Dbml.dll into lib/net10.0/ alongside OpenSmith.Plinqo.dll -->
   <Target Name="IncludeEmbeddedDlls" BeforeTargets="_GetBuildOutputFilesWithTfm">

@@ -1,20 +1,15 @@
 <Project>
 
-  <PropertyGroup>
-    <OpenSmithRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../opensmith/src'))</OpenSmithRoot>
-    <!-- Default: swap PackageReferences to ProjectReferences for local dev.
-         Override with -p:UseLocalProjects=false for pack/CI (requires packages on a NuGet feed). -->
-    <UseLocalProjects Condition="'$(UseLocalProjects)' == ''">true</UseLocalProjects>
-  </PropertyGroup>
-
   <!-- Static ItemGroup so NuGet restore sees the swap too.
        Only swap OpenSmith and OpenSmith.SchemaExplorer (the packages used by src/ projects).
        Remove is a no-op for packages not referenced by a given project. -->
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true' AND Exists('$(OpenSmithRoot)/OpenSmith/OpenSmith.csproj')">
     <PackageReference Remove="OpenSmith" />
     <PackageReference Remove="OpenSmith.SchemaExplorer" />
+    <PackageReference Remove="OpenSmith.Sdk.TemplatePackage" />
     <ProjectReference Include="$(OpenSmithRoot)/OpenSmith/OpenSmith.csproj" />
     <ProjectReference Include="$(OpenSmithRoot)/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj" />
+    <ProjectReference Include="$(OpenSmithRoot)/OpenSmith.Sdk.TemplatePackage/OpenSmith.Sdk.TemplatePackage.csproj" />
   </ItemGroup>
 
 </Project>
