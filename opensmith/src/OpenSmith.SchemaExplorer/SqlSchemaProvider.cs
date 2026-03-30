@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Data.SqlClient;
 
@@ -83,24 +84,81 @@ public class SqlSchemaProvider
         // Index: "schema.table.column" -> ColumnSchema
         var columnIndex = new Dictionary<string, ColumnSchema>(StringComparer.OrdinalIgnoreCase);
 
-        LoadTables(connection, db, tableIndex);
-        LoadTableColumns(connection, db, tableIndex, columnIndex);
-        LoadPrimaryKeys(connection, tableIndex, columnIndex);
-        LoadUniqueConstraints(connection, tableIndex);
-        LoadForeignKeys(connection, db, tableIndex, columnIndex);
-        LoadExtendedProperties(connection, tableIndex, columnIndex);
-        LoadSyntheticColumnProperties(connection, tableIndex);
-        LoadCascadeDeleteProperties(connection, tableIndex);
+        // Determine how many extra connections we need for the parallel phase.
+        // Open them now so they warm up while Phase 1 runs on the main connection.
+        int extraConnCount = 3; // PKs+Unique, FKs+Cascade, ExtProps+Synthetic
+        if (IncludeViews) extraConnCount++;
+        if (IncludeFunctions) extraConnCount++;
 
-        if (IncludeViews)
+        var extraConns = new SqlConnection[extraConnCount];
+        var openTasks = new Task[extraConnCount];
+        for (int i = 0; i < extraConnCount; i++)
         {
-            LoadViews(connection, db);
-            LoadViewColumns(connection, db);
+            extraConns[i] = new SqlConnection(connectionString);
+            openTasks[i] = extraConns[i].OpenAsync();
         }
 
-        if (IncludeFunctions)
+        // Phase 1: Build lookup indexes (sequential — later phases depend on these).
+        // Extra connections open in the background while this runs.
+        LoadTables(connection, db, tableIndex);
+        LoadTableColumns(connection, db, tableIndex, columnIndex);
+
+        // Ensure all extra connections are ready
+        Task.WaitAll(openTasks);
+
+        try
         {
-            LoadCommands(connection, db, DeepLoad);
+            // Phase 2: Parallel queries — each task uses a pre-opened connection.
+            // Grouping avoids races on shared collections (ExtendedProperties).
+            int ci = 0;
+            var tasks = new List<Task>();
+
+            var connPkUnique = extraConns[ci++];
+            tasks.Add(Task.Run(() =>
+            {
+                LoadPrimaryKeys(connPkUnique, tableIndex, columnIndex);
+                LoadUniqueConstraints(connPkUnique, tableIndex);
+            }));
+
+            var connFk = extraConns[ci++];
+            tasks.Add(Task.Run(() =>
+            {
+                LoadForeignKeys(connFk, db, tableIndex, columnIndex);
+                LoadCascadeDeleteProperties(connFk, tableIndex);
+            }));
+
+            var connExtProps = extraConns[ci++];
+            tasks.Add(Task.Run(() =>
+            {
+                LoadExtendedProperties(connExtProps, tableIndex, columnIndex);
+                LoadSyntheticColumnProperties(connExtProps, tableIndex);
+            }));
+
+            if (IncludeViews)
+            {
+                var connViews = extraConns[ci++];
+                tasks.Add(Task.Run(() =>
+                {
+                    LoadViews(connViews, db);
+                    LoadViewColumns(connViews, db);
+                }));
+            }
+
+            if (IncludeFunctions)
+            {
+                var connCmds = extraConns[ci++];
+                tasks.Add(Task.Run(() =>
+                {
+                    LoadCommands(connCmds, db, DeepLoad);
+                }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+        }
+        finally
+        {
+            foreach (var c in extraConns)
+                c.Dispose();
         }
 
         return db;
