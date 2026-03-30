@@ -52,7 +52,7 @@ mkdir -p "$FEED_DIR"
 
 # Clear cached e2e packages to avoid stale NuGet artifacts
 dotnet nuget locals global-packages -l 2>/dev/null | grep -o '[^ ]*$' | while read -r cache_dir; do
-    for pkg in opensmith opensmith.compilation opensmith.schemaexplorer opensmith.cli opensmith.plinqo dbml generator; do
+    for pkg in opensmith opensmith.compilation opensmith.schemaexplorer opensmith.cli opensmith.plinqo; do
         rm -rf "$cache_dir/$pkg/0.0.1-e2etest" 2>/dev/null
     done
 done
@@ -69,8 +69,6 @@ for proj in \
     opensmith/src/OpenSmith.Compilation/OpenSmith.Compilation.csproj \
     opensmith/src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj \
     opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj \
-    plinqo/src/Dbml/Dbml.csproj \
-    plinqo/src/Generator/Generator.csproj \
     plinqo/src/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj; do
     echo "  Packing $(basename "$(dirname "$proj")") ..."
     dotnet pack "$REPO_ROOT/$proj" -o "$FEED_DIR" --configuration Release \
@@ -307,7 +305,7 @@ TOTAL=$((ENTITY_COUNT + CONTEXT_COUNT + BASE_COUNT))
 if [ "$DBML_EXISTS" = "yes" ] && [ "$TOTAL" -gt 0 ]; then
     echo ""
     echo "  Sample generated files:"
-    find Generated -name "*.cs" | head -5 | sed 's/^/    /'
+    find Generated -name "*.cs" | head -5 | sed 's/^/    /' || true
     echo ""
     echo "=== E2E TEST PASSED ==="
     echo "  Generated DBML + $TOTAL C# files from a fresh consumer project."

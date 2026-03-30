@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Description>Dbml Object Model</Description>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
 </Project>

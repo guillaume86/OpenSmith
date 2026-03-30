@@ -2,23 +2,23 @@
 
   <!-- Pack templates into the NuGet package -->
   <ItemGroup>
-    <None Include="Templates\**\*" Pack="true" PackagePath="templates\" />
+    <None Include="Templates\**\*" Pack="true" PackagePath="templates/" />
   </ItemGroup>
 
   <!-- Auto-detect and pack the consumer-side build targets file (custom override) -->
   <ItemGroup Condition="Exists('build\$(PackageId).targets')">
-    <None Include="build\$(PackageId).targets" Pack="true" PackagePath="build\" />
+    <None Include="build\$(PackageId).targets" Pack="true" PackagePath="build/" />
   </ItemGroup>
 
   <!-- If no custom .targets exists, pack the generic consumer targets (renamed to match the package) -->
   <ItemGroup Condition="!Exists('build\$(PackageId).targets')">
     <None Include="$(MSBuildThisFileDirectory)OpenSmith.TemplatePackage.Consumer.targets"
-          Pack="true" PackagePath="build\$(PackageId).targets" />
+          Pack="true" PackagePath="build/$(PackageId).targets" />
   </ItemGroup>
 
   <!-- Auto-detect and pack a consumer-side build props file -->
   <ItemGroup Condition="Exists('build\$(PackageId).props')">
-    <None Include="build\$(PackageId).props" Pack="true" PackagePath="build\" />
+    <None Include="build\$(PackageId).props" Pack="true" PackagePath="build/" />
   </ItemGroup>
 
   <!-- Exclude template files from compilation -->
@@ -26,7 +26,7 @@
     <Compile Remove="Templates\**" />
   </ItemGroup>
 
-  <!-- Bundle all project reference DLLs into the package -->
+  <!-- Bundle all project reference DLLs into the package and suppress them as NuGet dependencies -->
   <PropertyGroup>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
@@ -35,6 +35,16 @@
     <ItemGroup>
       <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
         Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Remove project references from nuspec dependencies (DLLs are already bundled in lib/) -->
+  <Target Name="_SuppressProjectReferenceDependencies"
+          AfterTargets="_WalkEachTargetPerFramework"
+          BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Remove="@(_ProjectReferencesWithVersions)" />
+      <_FrameworksWithSuppressedDependencies Include="$(TargetFramework)" />
     </ItemGroup>
   </Target>
 

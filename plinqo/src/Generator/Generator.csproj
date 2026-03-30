@@ -5,6 +5,7 @@
     <RootNamespace>LinqToSqlShared.Generator</RootNamespace>
     <AssemblyName>Generator</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

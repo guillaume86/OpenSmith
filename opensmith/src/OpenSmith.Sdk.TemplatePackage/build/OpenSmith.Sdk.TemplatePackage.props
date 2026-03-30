@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <DevelopmentDependency>true</DevelopmentDependency>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
 
   <!-- Default all ProjectReferences to PrivateAssets="all" -->
