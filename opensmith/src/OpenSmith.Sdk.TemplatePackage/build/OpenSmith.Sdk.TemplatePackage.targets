@@ -16,6 +16,11 @@
           Pack="true" PackagePath="build/$(PackageId).targets" />
   </ItemGroup>
 
+  <!-- Auto-detect and pack the consumer-side build props file (custom override) -->
+  <ItemGroup Condition="Exists('build\$(PackageId).props')">
+    <None Include="build\$(PackageId).props" Pack="true" PackagePath="build/" />
+  </ItemGroup>
+
   <!-- Exclude template files from compilation -->
   <ItemGroup>
     <Compile Remove="Templates\**" />

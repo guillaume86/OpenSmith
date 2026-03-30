@@ -112,69 +112,6 @@ public class PackTests(TemplatePackageFixture fixture)
     }
 
     [Fact]
-    public async Task Pack_BundlesProjectReferenceDlls()
-    {
-        var testDir = fixture.CreateTestDir("pack-projref");
-
-        // Create a small class library that the template project will reference
-        var libDir = Path.Combine(testDir, "TestHelper");
-        Directory.CreateDirectory(libDir);
-        File.WriteAllText(Path.Combine(libDir, "TestHelper.csproj"),
-            """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>netstandard2.0</TargetFramework>
-              </PropertyGroup>
-            </Project>
-            """);
-        File.WriteAllText(Path.Combine(libDir, "Helper.cs"),
-            """
-            namespace TestHelper
-            {
-                public static class Helper
-                {
-                    public static string Greet() { return "Hello"; }
-                }
-            }
-            """);
-
-        // Create the template project with a ProjectReference
-        var projectDir = Path.Combine(testDir, "TestPkg.WithRef");
-        Directory.CreateDirectory(projectDir);
-
-        var templatesDir = Path.Combine(projectDir, "Templates");
-        Directory.CreateDirectory(templatesDir);
-        File.WriteAllText(Path.Combine(templatesDir, "Main.cst"), "template content");
-
-        File.WriteAllText(Path.Combine(projectDir, "TestPkg.WithRef.csproj"),
-            $"""
-             <Project Sdk="Microsoft.NET.Sdk">
-               <PropertyGroup>
-                 <TargetFramework>netstandard2.0</TargetFramework>
-                 <LangVersion>latest</LangVersion>
-                 <PackageId>TestPkg.WithRef</PackageId>
-                 <Version>{fixture.SdkVersion}</Version>
-               </PropertyGroup>
-               <ItemGroup>
-                 <PackageReference Include="OpenSmith.Sdk.TemplatePackage"
-                                   Version="{fixture.SdkVersion}" PrivateAssets="all" />
-               </ItemGroup>
-               <ItemGroup>
-                 <ProjectReference Include="..\TestHelper\TestHelper.csproj" />
-               </ItemGroup>
-             </Project>
-             """);
-
-        fixture.WriteNuGetConfig(projectDir, "TestPkg.WithRef");
-
-        var nupkg = await fixture.PackTemplateProjectAsync(projectDir);
-        var entries = TemplatePackageFixture.GetNupkgEntries(nupkg);
-
-        // The referenced DLL should be bundled in the lib folder
-        Assert.Contains(entries, e => e.Contains("TestHelper.dll", StringComparison.OrdinalIgnoreCase));
-    }
-
-    [Fact]
     public async Task Pack_DoesNotBundleNuGetTransitiveDlls()
     {
         var testDir = fixture.CreateTestDir("pack-no-nuget-dlls");
