@@ -52,3 +52,23 @@ done
 
 echo "Done. Packages in $OUT:"
 ls -1 "$OUT"/*.nupkg
+
+# Clear OpenSmith runtime caches (dependency publish + template compilation)
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  OPENSMITH_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/opensmith"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  OPENSMITH_CACHE="$HOME/Library/Caches/opensmith"
+else
+  OPENSMITH_CACHE="$LOCALAPPDATA/opensmith"
+fi
+
+if [[ -d "$OPENSMITH_CACHE" ]]; then
+  echo "==> Clearing OpenSmith cache: $OPENSMITH_CACHE"
+  rm -rf "$OPENSMITH_CACHE"
+fi
+
+# Reinstall the opensmith CLI local tool
+echo "==> Reinstalling opensmith CLI tool"
+cd "$REPO_ROOT"
+dotnet tool uninstall opensmith.cli
+dotnet tool install opensmith.cli
