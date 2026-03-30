@@ -246,3 +246,4 @@ health/
 
 # Local files
 *.local.*
+*.local
