@@ -311,5 +311,5 @@ public class AssemblyDirective
 public class NuGetDirective
 {
     public string Package { get; set; }
-    public string? Version { get; set; }
+    public string Version { get; set; }
 }
