@@ -375,46 +375,49 @@ public class DbmlGenerator
         }
 
         // add reverse association
-        key = AssociationKey.CreatePrimaryKey(name);
-        isNew = !primaryTable.Type.Associations.Contains(key);
-
-        Association primaryAssociation;
-        if (isNew)
-            primaryAssociation = new Association(name);
-        else
-            primaryAssociation = primaryTable.Type.Associations[key];
-
-        primaryAssociation.IsForeignKey = false;
-        primaryAssociation.ThisKey = foreignAssociation.OtherKey;
-        primaryAssociation.OtherKey = foreignAssociation.ThisKey;
-        primaryAssociation.Type = foreignClass;
-
-        bool isOneToOne = IsOneToOne(tableKeySchema, foreignAssociation);
-
-        if (primaryAssociation.Cardinality == null && isOneToOne)
-            primaryAssociation.Cardinality = Cardinality.One;
-
-        if (isNew)
+        if (!Settings.IsReverseAssociationExcluded(name))
         {
-            string propertyName = prefix + foreignClass;
-            if (!isOneToOne)
+            key = AssociationKey.CreatePrimaryKey(name);
+            isNew = !primaryTable.Type.Associations.Contains(key);
+
+            Association primaryAssociation;
+            if (isNew)
+                primaryAssociation = new Association(name);
+            else
+                primaryAssociation = primaryTable.Type.Associations[key];
+
+            primaryAssociation.IsForeignKey = false;
+            primaryAssociation.ThisKey = foreignAssociation.OtherKey;
+            primaryAssociation.OtherKey = foreignAssociation.ThisKey;
+            primaryAssociation.Type = foreignClass;
+
+            bool isOneToOne = IsOneToOne(tableKeySchema, foreignAssociation);
+
+            if (primaryAssociation.Cardinality == null && isOneToOne)
+                primaryAssociation.Cardinality = Cardinality.One;
+
+            if (isNew)
             {
-                if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
-                    propertyName += "List";
-                else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
-                    propertyName = StringUtil.ToPlural(propertyName);
+                string propertyName = prefix + foreignClass;
+                if (!isOneToOne)
+                {
+                    if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
+                        propertyName += "List";
+                    else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
+                        propertyName = StringUtil.ToPlural(propertyName);
+                }
+
+                primaryAssociation.Member = ToPropertyName(primaryTable.Type.Name, propertyName);
+                primaryAssociation.Storage = CommonUtility.GetFieldName(primaryAssociation.Member);
+                primaryTable.Type.Associations.Add(primaryAssociation);
+            }
+            else
+            {
+                PropertyNames[primaryTable.Type.Name].Add(primaryAssociation.Member);
             }
 
-            primaryAssociation.Member = ToPropertyName(primaryTable.Type.Name, propertyName);
-            primaryAssociation.Storage = CommonUtility.GetFieldName(primaryAssociation.Member);
-            primaryTable.Type.Associations.Add(primaryAssociation);
+            primaryAssociation.IsProcessed = true;
         }
-        else
-        {
-            PropertyNames[primaryTable.Type.Name].Add(primaryAssociation.Member);
-        }
-
-        primaryAssociation.IsProcessed = true;
 
         if (IsTableKeySchemaCascadeDelete(tableKeySchema))
         {

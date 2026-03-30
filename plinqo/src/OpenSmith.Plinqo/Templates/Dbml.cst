@@ -36,6 +36,11 @@
     Description="List of regular expressions to include tables and views when generating mapping."
     Default="" %>
 
+<%@ Property Category="1.Database" Name="ExcludeReverseAssociationsList"
+    Type="CodeSmith.CustomProperties.StringCollection" Optional="True"
+    Description="List of regular expressions to exclude reverse (one to many) associations when generating mapping."
+    Default="" %>
+
 <%@ Property Category="1.Database" Name="CleanExpression"
     Type="CodeSmith.CustomProperties.StringCollection" Optional="True"
     Description="List of regular expressions to clean table, view and column names."
@@ -150,7 +155,12 @@
                     settings.IncludeExpressions.Add(new Regex(include));
         if (settings.IncludeExpressions.Count == 0)
             settings.IncludeExpressions.Add(new Regex(".*"));
-                
+
+        if (ExcludeReverseAssociationsList != null)
+            foreach(string exclude in ExcludeReverseAssociationsList)
+                if (!string.IsNullOrEmpty(exclude))
+                    settings.ExcludeReverseAssociationsExpressions.Add(new Regex(exclude));
+
         foreach(string enumRegex in EnumList)
             if (!string.IsNullOrEmpty(enumRegex))
                 settings.EnumExpressions.Add(new Regex(enumRegex));

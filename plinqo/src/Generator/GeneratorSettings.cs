@@ -18,6 +18,7 @@ public class GeneratorSettings
     public List<Regex> EnumExpressions { get; } = [];
     public List<Regex> EnumNameExpressions { get; } = [];
     public List<Regex> EnumDescriptionExpressions { get; } = [];
+    public List<Regex> ExcludeReverseAssociationsExpressions { get; } = [];
     public List<string> UserDefinedAssociations { get; set; } = [];
     public bool DisableRenaming { get; set; }
 
@@ -26,6 +27,9 @@ public class GeneratorSettings
 
     public bool IsColumnIgnored(string columnName) =>
         IsRegexMatch(columnName, IgnoreExpressions);
+
+    public bool IsReverseAssociationExcluded(string name) =>
+        IsRegexMatch(name, ExcludeReverseAssociationsExpressions);
 
     public bool IsUnsupportedDbType(IColumnSchema column) =>
         column.NativeType.Equals("geography", StringComparison.OrdinalIgnoreCase)
