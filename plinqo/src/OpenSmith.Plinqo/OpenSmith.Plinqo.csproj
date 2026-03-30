@@ -5,36 +5,28 @@
     <Description>PLINQO templates for OpenSmith code generation. Generates LINQ to SQL entities, data contexts, and managers from a SQL Server database.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <!-- Default to ProjectReference during local dev to bypass NuGet cache.
-         Override with -p:UseSdkProjectReference=false for pack/CI. -->
-    <UseSdkProjectReference Condition="'$(UseSdkProjectReference)' == ''">true</UseSdkProjectReference>
-  </PropertyGroup>
-
-  <!-- Local dev: bypass NuGet cache entirely -->
-  <ItemGroup Condition="'$(UseSdkProjectReference)' == 'true'">
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\OpenSmith.Sdk.TemplatePackage.csproj" PrivateAssets="all" />
-  </ItemGroup>
-
-  <!-- NuGet auto-imports build/ props+targets for PackageReference but not ProjectReference.
-       Import them explicitly so template compilation exclusion and packing logic still apply. -->
-  <Import Condition="'$(UseSdkProjectReference)' == 'true'"
-          Project="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\build\OpenSmith.Sdk.TemplatePackage.props" />
-  <Import Condition="'$(UseSdkProjectReference)' == 'true'"
-          Project="..\..\..\opensmith\src\OpenSmith.Sdk.TemplatePackage\build\OpenSmith.Sdk.TemplatePackage.targets" />
-
-  <!-- CI / pack: consume as a NuGet package -->
-  <ItemGroup Condition="'$(UseSdkProjectReference)' != 'true'">
-    <PackageReference Include="OpenSmith.Sdk.TemplatePackage" Version="*" PrivateAssets="all" />
+  <ItemGroup>
+    <!-- PrivateAssets="all": embeds Generator.dll + Dbml.dll in the nupkg, no NuGet dep -->
+    <ProjectReference Include="..\Generator\Generator.csproj" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Non-packable: bundle DLLs in the template package -->
-    <ProjectReference Include="..\Dbml\Dbml.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\Generator\Generator.csproj" PrivateAssets="all" />
-    <!-- Packable: flow as NuGet dependencies, resolved at render time via dotnet publish -->
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
+    <!-- Explicit NuGet deps (PrivateAssets="all" on Generator suppresses its transitives) -->
+    <PackageReference Include="OpenSmith" Version="$(OpenSmithVersion)" />
+    <PackageReference Include="OpenSmith.SchemaExplorer" Version="$(OpenSmithVersion)" />
   </ItemGroup>
+
+  <!-- Exclude template files from compilation -->
+  <ItemGroup>
+    <Compile Remove="Templates\**" />
+  </ItemGroup>
+
+  <!-- Pack Generator.dll and Dbml.dll into lib/net10.0/ alongside OpenSmith.Plinqo.dll -->
+  <Target Name="IncludeEmbeddedDlls" BeforeTargets="_GetBuildOutputFilesWithTfm">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(OutputPath)Generator.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)Dbml.dll" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
+    <PackageReference Include="OpenSmith" Version="$(OpenSmithVersion)" />
+    <PackageReference Include="OpenSmith.SchemaExplorer" Version="$(OpenSmithVersion)" />
     <ProjectReference Include="..\Dbml\Dbml.csproj" />
   </ItemGroup>
 

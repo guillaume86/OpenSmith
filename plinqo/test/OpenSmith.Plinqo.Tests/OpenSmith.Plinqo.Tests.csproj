@@ -17,9 +17,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dbml\Dbml.csproj" />
     <ProjectReference Include="..\..\src\Generator\Generator.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
+    <PackageReference Include="OpenSmith" Version="$(OpenSmithVersion)" />
+    <PackageReference Include="OpenSmith.SchemaExplorer" Version="$(OpenSmithVersion)" />
+    <!-- Direct ProjectReference — only used by tests, not packed -->
     <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.Compilation\OpenSmith.Compilation.csproj" />
-    <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
