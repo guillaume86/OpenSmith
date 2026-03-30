@@ -10,6 +10,7 @@
     <Project Path="opensmith/test/OpenSmith.Tests/OpenSmith.Tests.csproj" />
     <Project Path="opensmith/test/OpenSmith.Compilation.Tests/OpenSmith.Compilation.Tests.csproj" />
     <Project Path="opensmith/test/OpenSmith.Benchmarks/OpenSmith.Benchmarks.csproj" />
+    <Project Path="opensmith/test/OpenSmith.Sdk.TemplatePackage.Tests/OpenSmith.Sdk.TemplatePackage.Tests.csproj" />
   </Folder>
   <Folder Name="/plinqo/src/">
     <Project Path="plinqo/src/Dbml/Dbml.csproj" />

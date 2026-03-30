@@ -26,7 +26,7 @@
     <Compile Remove="Templates\**" />
   </ItemGroup>
 
-  <!-- Bundle all project reference DLLs into the package and suppress them as NuGet dependencies -->
+  <!-- Bundle DLLs from project references (but not from NuGet packages, which are resolved at render time) -->
   <PropertyGroup>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
@@ -34,27 +34,8 @@
   <Target Name="_CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
     <ItemGroup>
       <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
-        Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
-    </ItemGroup>
-  </Target>
-
-  <!-- Remove project references from nuspec dependencies (DLLs are already bundled in lib/) -->
-  <Target Name="_SuppressProjectReferenceDependencies"
-          AfterTargets="_WalkEachTargetPerFramework"
-          BeforeTargets="GenerateNuspec">
-    <ItemGroup>
-      <_ProjectReferencesWithVersions Remove="@(_ProjectReferencesWithVersions)" />
-      <_FrameworksWithSuppressedDependencies Include="$(TargetFramework)" />
-    </ItemGroup>
-  </Target>
-
-  <!-- Bundle platform-specific native DLLs -->
-  <Target Name="_PackRuntimeNativeAssets" AfterTargets="Build" BeforeTargets="$(GenerateNuspecDependsOn)">
-    <ItemGroup>
-      <_RuntimeFile Include="$(TargetDir)runtimes\**\*" />
-      <Content Include="@(_RuntimeFile)" Pack="true"
-        PackagePath="runtimes"
-        CopyToOutputDirectory="Never" />
+        Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'
+                   AND '%(ReferenceCopyLocalPaths.NuGetPackageId)' == ''" />
     </ItemGroup>
   </Target>
 

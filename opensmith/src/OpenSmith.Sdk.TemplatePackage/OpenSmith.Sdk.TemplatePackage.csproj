@@ -5,7 +5,7 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <Description>MSBuild SDK for building OpenSmith template packages. Handles template bundling, DLL packaging, and native asset inclusion.</Description>
+    <Description>MSBuild SDK for building OpenSmith template packages. Handles template bundling and private project reference inclusion.</Description>
     <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\..\artifacts\packages</PackageOutputPath>
   </PropertyGroup>
 

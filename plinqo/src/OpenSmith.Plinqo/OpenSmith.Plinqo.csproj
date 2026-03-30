@@ -10,8 +10,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dbml\Dbml.csproj" />
-    <ProjectReference Include="..\Generator\Generator.csproj" />
+    <!-- Non-packable: bundle DLLs in the template package -->
+    <ProjectReference Include="..\Dbml\Dbml.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Generator\Generator.csproj" PrivateAssets="all" />
+    <!-- Packable: flow as NuGet dependencies, resolved at render time via dotnet publish -->
     <ProjectReference Include="..\..\..\opensmith\src\OpenSmith\OpenSmith.csproj" />
     <ProjectReference Include="..\..\..\opensmith\src\OpenSmith.SchemaExplorer\OpenSmith.SchemaExplorer.csproj" />
   </ItemGroup>
