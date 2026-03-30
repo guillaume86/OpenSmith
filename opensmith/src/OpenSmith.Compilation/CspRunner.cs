@@ -178,8 +178,15 @@ public class CspRunner
 
     public static void LogPostExecution(CodeTemplateBase template, bool verbose, Action<string> log)
     {
-        foreach (var reference in template.References)
-            log($"  WARNING: RegisterReference is not supported — ignored '{reference}'");
+        if (template.References.Count > 0)
+        {
+            log($"  WARNING: RegisterReference is not supported — ignored {template.References.Count} reference(s)");
+            if (verbose)
+            {
+                foreach (var reference in template.References)
+                    log($"    - {reference}");
+            }
+        }
 
         if (verbose)
         {

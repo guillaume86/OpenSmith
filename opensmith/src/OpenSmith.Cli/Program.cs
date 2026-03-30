@@ -49,9 +49,7 @@ public class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
-            if (verbose)
-                Console.Error.WriteLine(ex.StackTrace);
+            Console.Error.WriteLine($"Error: {ex}");
             return 1;
         }
     }
