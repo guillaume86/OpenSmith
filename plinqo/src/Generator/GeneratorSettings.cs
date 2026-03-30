@@ -114,4 +114,18 @@ public class GeneratorSettings
     public bool IncludeDeleteOnNull { get; set; } = true;
     public bool IncludeDataContract { get; set; } = true;
     public bool GenerateMetaData { get; set; } = true;
+
+    /// <summary>
+    /// When set, overrides the default forward association member name.
+    /// Parameters: (fkConstraintName, foreignClassName, primaryClassName, defaultPrefix).
+    /// Return a name to override, or null to fall back to default logic.
+    /// </summary>
+    public Func<string, string, string, string, string> ResolveAssociationMemberName { get; set; }
+
+    /// <summary>
+    /// When set, overrides the default reverse association member name.
+    /// Parameters: (fkConstraintName, foreignClassName, primaryClassName, defaultPrefix).
+    /// Return a name to override, or null to fall back to default logic.
+    /// </summary>
+    public Func<string, string, string, string, string> ResolveReverseAssociationMemberName { get; set; }
 }

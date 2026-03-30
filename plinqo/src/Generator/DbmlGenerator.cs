@@ -365,7 +365,8 @@ public class DbmlGenerator
 
         if (isNew)
         {
-            foreignAssociation.Member = ToPropertyName(foreignTable.Type.Name, prefix + primaryClass);
+            string customName = settings.ResolveAssociationMemberName?.Invoke(name, foreignClass, primaryClass, prefix);
+            foreignAssociation.Member = customName ?? ToPropertyName(foreignTable.Type.Name, prefix + primaryClass);
             foreignAssociation.Storage = CommonUtility.GetFieldName(foreignAssociation.Member);
             foreignTable.Type.Associations.Add(foreignAssociation);
         }
@@ -398,13 +399,22 @@ public class DbmlGenerator
 
             if (isNew)
             {
-                string propertyName = prefix + foreignClass;
-                if (!isOneToOne)
+                string customReverseName = settings.ResolveReverseAssociationMemberName?.Invoke(name, foreignClass, primaryClass, prefix);
+                string propertyName;
+                if (customReverseName != null)
                 {
-                    if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
-                        propertyName += "List";
-                    else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
-                        propertyName = StringUtil.ToPlural(propertyName);
+                    propertyName = customReverseName;
+                }
+                else
+                {
+                    propertyName = prefix + foreignClass;
+                    if (!isOneToOne)
+                    {
+                        if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
+                            propertyName += "List";
+                        else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
+                            propertyName = StringUtil.ToPlural(propertyName);
+                    }
                 }
 
                 primaryAssociation.Member = ToPropertyName(primaryTable.Type.Name, propertyName);
