@@ -26,9 +26,10 @@ public class CspRunner
         var xml = File.ReadAllText(absoluteCspPath);
         var project = CspParser.Parse(xml);
 
-        Log($"Parsed CSP: {project.PropertySets.Count} property set(s)");
+        LogVerbose($"Parsed CSP: {project.PropertySets.Count} property set(s)");
 
         // Pre-scan all templates to collect NuGet directives for dependency resolution
+        var scanSw = Stopwatch.StartNew();
         var allNuGetDirectives = new List<NuGetDirective>();
         string? templateDir = null;
 
@@ -43,19 +44,23 @@ public class CspRunner
             foreach (var entry in registry.Entries.Values)
                 allNuGetDirectives.AddRange(entry.Parsed.NuGetPackages);
         }
+        scanSw.Stop();
+        LogVerbose($"  Dependencies: resolving NuGet directives... [{FormatElapsed(scanSw)}]");
 
         // Resolve dependencies via dotnet publish (or cache hit)
         var depSw = Stopwatch.StartNew();
         var publisher = new DependencyPublisher(templateDir ?? cspDir, allNuGetDirectives, _verbose);
         publisher.Publish();
         depSw.Stop();
-        Log($"Dependencies resolved [{FormatElapsed(depSw)}]");
+        LogVerbose($"Dependencies resolved [{FormatElapsed(depSw)}]");
 
         // Create custom ALC for runtime assembly + native library resolution
         var alc = new TemplateAssemblyLoadContext(publisher.PublishDirectory!);
         TemplateAssemblyLoadContext.Current = alc;
         PropertyDeserializer.SetLoadContext(alc);
 
+        var succeeded = 0;
+        var failed = 0;
         var originalDir = Directory.GetCurrentDirectory();
         try
         {
@@ -64,8 +69,20 @@ public class CspRunner
 
             foreach (var propertySet in project.PropertySets)
             {
-                Log($"Processing property set: {propertySet.Name}");
-                RunPropertySet(propertySet, cspDir, project.Variables, publisher.PublishDirectory!, publisher.Fingerprint);
+                LogVerbose($"Processing property set: {propertySet.Name}");
+                try
+                {
+                    RunPropertySet(propertySet, cspDir, project.Variables, publisher.PublishDirectory!, publisher.Fingerprint);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    if (_verbose)
+                        LogVerbose($"  FAILED: {propertySet.Name} — {ex.Message}");
+                    else
+                        throw;
+                }
             }
         }
         finally
@@ -74,7 +91,8 @@ public class CspRunner
         }
 
         totalSw.Stop();
-        Log($"\nCompleted in {FormatElapsed(totalSw)}");
+        var elapsedMs = (long)totalSw.Elapsed.TotalMilliseconds;
+        Log($"\nDone rendering outputs: {succeeded} succeeded, {failed} failed ({elapsedMs}ms).");
     }
 
     private void RunPropertySet(CspPropertySet propertySet, string cspDir, Dictionary<string, string> variables,
@@ -85,7 +103,7 @@ public class CspRunner
         if (!File.Exists(templatePath))
             throw new FileNotFoundException($"Template not found: {templatePath}");
 
-        Log($"  Template: {templatePath}");
+        LogVerbose($"  Template: {templatePath}");
 
         // 1. Resolve template dependency graph
         var sw = Stopwatch.StartNew();
@@ -93,7 +111,7 @@ public class CspRunner
         var rootClassName = registry.Resolve(templatePath);
         sw.Stop();
 
-        Log($"  Resolved {registry.Entries.Count} template(s) [{FormatElapsed(sw)}]");
+        LogVerbose($"  Resolved {registry.Entries.Count} template(s) [{FormatElapsed(sw)}]");
 
         // 2. Generate C# source for each template
         sw.Restart();
@@ -109,7 +127,7 @@ public class CspRunner
             sources[className] = source;
 
             if (_verbose)
-                Log($"  Generated class: {className}");
+                LogVerbose($"  Generated class: {className}");
         }
 
         // 3. Collect Assembly Src files
@@ -127,14 +145,14 @@ public class CspRunner
                         srcContent = TemplateCompiler.PrepareInlineSource(srcContent);
                         var srcName = Path.GetFileNameWithoutExtension(srcPath);
                         sources.TryAdd(srcName, srcContent);
-                        Log($"  Included source: {srcPath}");
+                        LogVerbose($"  Included source: {srcPath}");
                     }
                 }
             }
         }
         sw.Stop();
 
-        Log($"  Generated {sources.Count} source(s) [{FormatElapsed(sw)}]");
+        LogVerbose($"  Generated {sources.Count} source(s) [{FormatElapsed(sw)}]");
 
         // 4. Compile all templates into one assembly (with optional cache)
         sw.Restart();
@@ -148,7 +166,7 @@ public class CspRunner
             false => " (compiled)",
             _ => "",
         };
-        Log($"  Compiled {typeMap.Count} template type(s){cacheStatus} [{FormatElapsed(sw)}]");
+        LogVerbose($"  Compiled {typeMap.Count} template type(s){cacheStatus} [{FormatElapsed(sw)}]");
 
         // 5. Instantiate root template
         if (!typeMap.TryGetValue(rootClassName, out var rootType))
@@ -157,10 +175,30 @@ public class CspRunner
         var template = (CodeTemplateBase)Activator.CreateInstance(rootType)!;
         template.CodeTemplateInfo.DirectoryName = Path.GetDirectoryName(templatePath);
 
-        // 6. Set properties from CSP
-        PropertyDeserializer.SetProperties(template, propertySet.Properties, variables);
+        // 5b. Propagate schema provider hints from template <%@ Property %> directives to CSP properties
+        var rootParsed = registry.Entries[rootClassName].Parsed;
+        foreach (var propDirective in rootParsed.Properties)
+        {
+            if (!propertySet.Properties.TryGetValue(propDirective.Name, out var cspProp))
+                continue;
+            if (!propDirective.DeepLoad && !propDirective.IncludeViews && !propDirective.IncludeFunctions)
+                continue;
 
-        Log($"  Executing template...");
+            cspProp.ProviderHints = new Dictionary<string, bool>
+            {
+                ["DeepLoad"] = propDirective.DeepLoad,
+                ["IncludeViews"] = propDirective.IncludeViews,
+                ["IncludeFunctions"] = propDirective.IncludeFunctions,
+            };
+        }
+
+        // 6. Set properties from CSP
+        sw.Restart();
+        PropertyDeserializer.SetProperties(template, propertySet.Properties, variables);
+        sw.Stop();
+        LogVerbose($"  Properties set [{FormatElapsed(sw)}]");
+
+        LogVerbose($"  Executing template...");
 
         // 7. Execute template (RenderToString triggers Generate() via template body)
         CodeTemplateBase.ResetCounters();
@@ -171,9 +209,9 @@ public class CspRunner
         var filesWritten = CodeTemplateBase.FilesWrittenCount;
 
         // 8. Log registered outputs and references
-        LogPostExecution(template, _verbose, Log);
+        LogPostExecution(template, _verbose, LogVerbose);
 
-        Log($"  Done: {propertySet.Name} — {filesWritten} file(s) written, {template.Outputs.Count} output(s) registered [{FormatElapsed(sw)}]");
+        LogVerbose($"  Done: {propertySet.Name} — {filesWritten} file(s) written, {template.Outputs.Count} output(s) registered [{FormatElapsed(sw)}]");
     }
 
     public static void LogPostExecution(CodeTemplateBase template, bool verbose, Action<string> log)
@@ -203,6 +241,12 @@ public class CspRunner
     private void Log(string message)
     {
         Console.WriteLine(message);
+    }
+
+    private void LogVerbose(string message)
+    {
+        if (_verbose)
+            Console.WriteLine(message);
     }
 
     private static string FormatElapsed(Stopwatch sw)

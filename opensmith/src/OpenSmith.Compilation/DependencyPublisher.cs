@@ -41,7 +41,7 @@ public class DependencyPublisher
         {
             PublishDirectory = "";
             Fingerprint = "";
-            Console.WriteLine("  Dependencies: none (bare template)");
+            if (_verbose) Console.WriteLine("  Dependencies: none (bare template)");
             return;
         }
 
@@ -53,11 +53,11 @@ public class DependencyPublisher
         if (File.Exists(markerPath))
         {
             PublishDirectory = cacheDir;
-            Console.WriteLine($"  Dependencies: cache hit ({Fingerprint[..8]})");
+            if (_verbose) Console.WriteLine($"  Dependencies: cache hit ({Fingerprint[..8]})");
             return;
         }
 
-        Console.WriteLine($"  Dependencies: resolving via dotnet publish...");
+        if (_verbose) Console.WriteLine($"  Dependencies: resolving via dotnet publish...");
 
         // Generate proxy project in a temp directory
         var tempDir = Path.Combine(Path.GetTempPath(), "opensmith-deps-" + Guid.NewGuid().ToString("N")[..8]);

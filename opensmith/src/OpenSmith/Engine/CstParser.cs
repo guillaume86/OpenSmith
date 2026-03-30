@@ -136,6 +136,9 @@ public static class CstParser
                     Optional = string.Equals(attrs.GetValueOrDefault("Optional"), "True", StringComparison.OrdinalIgnoreCase),
                     Category = attrs.GetValueOrDefault("Category"),
                     Description = attrs.GetValueOrDefault("Description"),
+                    DeepLoad = string.Equals(attrs.GetValueOrDefault("DeepLoad"), "True", StringComparison.OrdinalIgnoreCase),
+                    IncludeViews = string.Equals(attrs.GetValueOrDefault("IncludeViews"), "True", StringComparison.OrdinalIgnoreCase),
+                    IncludeFunctions = string.Equals(attrs.GetValueOrDefault("IncludeFunctions"), "True", StringComparison.OrdinalIgnoreCase),
                 });
                 break;
 
@@ -283,6 +286,9 @@ public class PropertyDirective
     public bool Optional { get; set; }
     public string Category { get; set; }
     public string Description { get; set; }
+    public bool DeepLoad { get; set; }
+    public bool IncludeViews { get; set; }
+    public bool IncludeFunctions { get; set; }
 }
 
 public class MapDirective

@@ -113,4 +113,10 @@ public class CspProperty
     public string? Value { get; set; }
     public List<string>? StringList { get; set; }
     public XElement? ComplexXml { get; set; }
+
+    /// <summary>
+    /// Schema provider hints derived from the template's <%@ Property %> directive attributes
+    /// (e.g. DeepLoad, IncludeViews, IncludeFunctions). Populated by the runner before deserialization.
+    /// </summary>
+    public Dictionary<string, bool>? ProviderHints { get; set; }
 }

@@ -50,7 +50,7 @@ public static class PropertyDeserializer
 
         // Complex XML (provider-based or XmlSerializer)
         if (cspProp.ComplexXml != null)
-            return DeserializeComplexXml(targetType, cspProp.ComplexXml, variables);
+            return DeserializeComplexXml(targetType, cspProp, variables);
 
         // Simple value
         var text = cspProp.Value ?? "";
@@ -70,8 +70,9 @@ public static class PropertyDeserializer
         return text;
     }
 
-    private static object? DeserializeComplexXml(Type targetType, XElement xml, Dictionary<string, string> variables)
+    private static object? DeserializeComplexXml(Type targetType, CspProperty cspProp, Dictionary<string, string> variables)
     {
+        var xml = cspProp.ComplexXml!;
         var ns = xml.Name.Namespace;
 
         // Convention: if the XML contains a <providerType> element, resolve it dynamically.
@@ -83,7 +84,7 @@ public static class PropertyDeserializer
             if (connStrEl != null)
             {
                 var connStr = ResolveVariables(connStrEl.Value, variables);
-                return InvokeSchemaProvider(providerTypeEl.Value, connStr, targetType);
+                return InvokeSchemaProvider(providerTypeEl.Value, connStr, targetType, cspProp.ProviderHints);
             }
             return null;
         }
@@ -112,10 +113,13 @@ public static class PropertyDeserializer
     }
 
     /// <summary>
-    /// Resolves a provider type string (e.g. "SchemaExplorer.SqlSchemaProvider,SchemaExplorer.SqlSchemaProvider")
+    /// Resolves a provider type string (e.g. "SchemaExplorer.SqlSchemaProvider,OpenSmith.SchemaExplorer")
     /// and invokes GetDatabaseSchema(connectionString) via reflection.
+    /// Provider hints (DeepLoad, IncludeViews, IncludeFunctions) from the template's <%@ Property %>
+    /// directive are set on the provider instance before invocation.
     /// </summary>
-    private static object? InvokeSchemaProvider(string providerTypeString, string connectionString, Type targetType)
+    private static object? InvokeSchemaProvider(string providerTypeString, string connectionString,
+        Type targetType, Dictionary<string, bool>? providerHints)
     {
         // Parse "TypeName,AssemblyName" format
         var parts = providerTypeString.Split(',', 2, StringSplitOptions.TrimEntries);
@@ -146,6 +150,18 @@ public static class PropertyDeserializer
             throw new InvalidOperationException($"Could not resolve provider type '{typeName}'. Ensure the assembly containing it is referenced.");
 
         var instance = Activator.CreateInstance(providerType);
+
+        // Apply provider hints as properties on the instance (e.g. DeepLoad, IncludeViews, IncludeFunctions)
+        if (providerHints != null)
+        {
+            foreach (var (hintName, hintValue) in providerHints)
+            {
+                var hintProp = providerType.GetProperty(hintName, BindingFlags.Public | BindingFlags.Instance);
+                if (hintProp != null && hintProp.CanWrite && hintProp.PropertyType == typeof(bool))
+                    hintProp.SetValue(instance, hintValue);
+            }
+        }
+
         var method = providerType.GetMethod("GetDatabaseSchema", [typeof(string)]);
         if (method == null)
             throw new InvalidOperationException($"Provider type '{typeName}' does not have a GetDatabaseSchema(string) method.");

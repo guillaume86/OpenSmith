@@ -14,7 +14,7 @@
 <%@ Import Namespace="LinqToSqlShared.Generator" %>
 <%@ Import Namespace="Manager" %>
 
-<%@ Property Category="1.Database" Name="SourceDatabase" DeepLoad="true"
+<%@ Property Category="1.Database" Name="SourceDatabase" DeepLoad="false"
     Type="SchemaExplorer.DatabaseSchema"  Optional="False"
     Description="The source database for Linq to Sql." %>
 

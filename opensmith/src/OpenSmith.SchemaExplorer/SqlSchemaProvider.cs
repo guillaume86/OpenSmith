@@ -9,6 +9,23 @@ namespace SchemaExplorer;
 
 public class SqlSchemaProvider
 {
+    /// <summary>
+    /// When true, use the transactional fallback strategy to introspect stored procedure result sets
+    /// by actually executing them inside a rolled-back transaction. This is expensive for databases
+    /// with heavy procedures. When false, only the fast SchemaOnly strategy is used. Default: false.
+    /// </summary>
+    public bool DeepLoad { get; set; }
+
+    /// <summary>
+    /// When true, include database views in the schema. Default: false.
+    /// </summary>
+    public bool IncludeViews { get; set; }
+
+    /// <summary>
+    /// When true, include stored procedures and functions in the schema. Default: false.
+    /// </summary>
+    public bool IncludeFunctions { get; set; }
+
     private static readonly Dictionary<string, (Type SystemType, DbType DbType)> TypeMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["int"] = (typeof(int), DbType.Int32),
@@ -74,9 +91,17 @@ public class SqlSchemaProvider
         LoadExtendedProperties(connection, tableIndex, columnIndex);
         LoadSyntheticColumnProperties(connection, tableIndex);
         LoadCascadeDeleteProperties(connection, tableIndex);
-        LoadViews(connection, db);
-        LoadViewColumns(connection, db);
-        LoadCommands(connection, db);
+
+        if (IncludeViews)
+        {
+            LoadViews(connection, db);
+            LoadViewColumns(connection, db);
+        }
+
+        if (IncludeFunctions)
+        {
+            LoadCommands(connection, db, DeepLoad);
+        }
 
         return db;
     }
@@ -529,7 +554,7 @@ public class SqlSchemaProvider
         }
     }
 
-    private static void LoadCommands(SqlConnection connection, DatabaseSchema db)
+    private static void LoadCommands(SqlConnection connection, DatabaseSchema db, bool deepLoad = false)
     {
         // Load procedures and scalar functions
         // Exclude diagram-related system objects (sp_*diagram*, fn_diagramobjects)
@@ -582,7 +607,7 @@ public class SqlSchemaProvider
         }
 
         LoadCommandParameters(connection, db);
-        LoadCommandResults(connection, db, commandTypes);
+        LoadCommandResults(connection, db, commandTypes, deepLoad);
     }
 
     private static void LoadCommandParameters(SqlConnection connection, DatabaseSchema db)
@@ -672,7 +697,7 @@ public class SqlSchemaProvider
     }
 
     private static void LoadCommandResults(SqlConnection connection, DatabaseSchema db,
-        Dictionary<string, string> commandTypes)
+        Dictionary<string, string> commandTypes, bool deepLoad)
     {
         foreach (var command in db.Commands)
         {
@@ -693,8 +718,9 @@ public class SqlSchemaProvider
             catch { /* SchemaOnly can fail for dynamic SQL, computed SELECTs, etc. */ }
 
             // Strategy 2: Transactional execution with ROLLBACK (handles temp tables,
-            // dynamic SQL, and other edge cases by actually running the proc)
-            if (command.CommandResults.Count == 0)
+            // dynamic SQL, and other edge cases by actually running the proc).
+            // Only used when DeepLoad is enabled, as it actually executes procedures.
+            if (deepLoad && command.CommandResults.Count == 0)
             {
                 try
                 {
