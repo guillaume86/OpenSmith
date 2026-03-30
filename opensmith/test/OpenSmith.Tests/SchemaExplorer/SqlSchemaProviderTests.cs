@@ -10,7 +10,12 @@ public class SqlSchemaProviderTests
 
     public SqlSchemaProviderTests(SqlServerFixture fixture)
     {
-        var provider = new SqlSchemaProvider();
+        var provider = new SqlSchemaProvider
+        {
+            DeepLoad = true,
+            IncludeViews = true,
+            IncludeFunctions = true,
+        };
         _schema = provider.GetDatabaseSchema(fixture.ConnectionString);
     }
 

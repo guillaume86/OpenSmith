@@ -37,7 +37,7 @@ public class AdventureWorksFixture : IAsyncLifetime
         }
     }
 
-    public DatabaseSchema Schema => _schema ??= new SqlSchemaProvider().GetDatabaseSchema(ConnectionString);
+    public DatabaseSchema Schema => _schema ??= new SqlSchemaProvider { DeepLoad = true, IncludeViews = true, IncludeFunctions = true }.GetDatabaseSchema(ConnectionString);
 
     public string CreateTempDir()
     {

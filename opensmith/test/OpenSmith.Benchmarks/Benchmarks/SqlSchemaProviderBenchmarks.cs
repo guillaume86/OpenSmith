@@ -35,7 +35,7 @@ public class SqlSchemaProviderBenchmarks
     [Benchmark]
     public DatabaseSchema GetDatabaseSchema()
     {
-        var provider = new SqlSchemaProvider();
+        var provider = new SqlSchemaProvider { DeepLoad = true, IncludeViews = true, IncludeFunctions = true };
         return provider.GetDatabaseSchema(_connectionString);
     }
 
