@@ -1,9 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <ImplicitUsings>enable</ImplicitUsings>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
 </Project>

@@ -16,27 +16,9 @@
           Pack="true" PackagePath="build/$(PackageId).targets" />
   </ItemGroup>
 
-  <!-- Auto-detect and pack a consumer-side build props file -->
-  <ItemGroup Condition="Exists('build\$(PackageId).props')">
-    <None Include="build\$(PackageId).props" Pack="true" PackagePath="build/" />
-  </ItemGroup>
-
   <!-- Exclude template files from compilation -->
   <ItemGroup>
     <Compile Remove="Templates\**" />
   </ItemGroup>
-
-  <!-- Bundle DLLs from project references (but not from NuGet packages, which are resolved at render time) -->
-  <PropertyGroup>
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
-  </PropertyGroup>
-
-  <Target Name="_CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
-    <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
-        Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll'
-                   AND '%(ReferenceCopyLocalPaths.NuGetPackageId)' == ''" />
-    </ItemGroup>
-  </Target>
 
 </Project>
