@@ -55,8 +55,18 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      - name: Disable local-only NuGet source mapping
-        run: dotnet nuget remove source local
+      - name: Use nuget.org only (remove local source and its mapping)
+        run: |
+          cp NuGet.config NuGet.config.bak
+          cat > NuGet.config << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
 
       - name: Pack
         run: |
