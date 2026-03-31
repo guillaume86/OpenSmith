@@ -6,9 +6,9 @@ PLINQO (Professional LINQ to Objects) code generation for .NET — a minimal rei
 
 | Project | Description |
 |---------|-------------|
-| **Dbml** | Complete object model for DBML (Database Markup Language) XML files — 50+ classes covering tables, columns, associations, functions, and more. Includes `DbmlReader`, `DbmlSerializer`, `DbmlVisitor`, and `DbmlDuplicator` |
+| **Dbml** | Complete object model for DBML (Database Markup Language) XML files — tables, columns, associations, functions, and more. Includes `DbmlReader`, `DbmlSerializer`, `DbmlVisitor`, and `DbmlDuplicator` |
 | **Generator** | Converts a live SQL Server schema (via `OpenSmith.SchemaExplorer`) into the DBML object model. Handles naming conventions, ignore/include patterns, and enum mappings |
-| **OpenSmith.Plinqo** | The PLINQO templates themselves (20 `.cst` files + sample `.csp`), packaged as a NuGet `DevelopmentDependency`. Includes MSBuild targets that copy templates into the consuming project on first build |
+| **OpenSmith.Plinqo** | The PLINQO templates themselves (18 `.cst` files + sample `.csp`), packaged as a NuGet `DevelopmentDependency`. Includes MSBuild targets that copy templates into the consuming project on first build |
 
 ## Templates
 
@@ -25,11 +25,15 @@ Templates/
     ├── Entity.Generated.cst           # Generated entity classes
     ├── Entity.Editable.cst            # User-editable entity partial classes
     ├── Entity.Base.Generated.cst      # Base entity templates
+    ├── Entity.Base.Editable.cst       # User-editable base entity partial classes
     ├── Entity.Interface.cst           # Entity interfaces
     ├── EntityManager.Generated.cst    # Generated managers
     ├── EntityManager.Editable.cst     # User-editable managers
+    ├── DataContext.Manager.cst         # Data context manager
+    ├── DataManager.cst                 # Data manager base
     ├── Enums.cst                      # Enum generation
-    └── QueryExtension.*.cst           # Query extension templates
+    ├── QueryExtension.Generated.cst   # Generated query extensions
+    └── QueryExtension.Editable.cst    # User-editable query extensions
 ```
 
 Generated files are fully regenerated on each run. Editable files are only created if they don't already exist, preserving user customisations.

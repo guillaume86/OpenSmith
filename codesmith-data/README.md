@@ -12,5 +12,4 @@ Legacy data access library extracted from the [codesmithtools/Templates](https:/
 
 ## Notes
 
-- Both `CodeSmith.Data` and `CodeSmith.Data.LinqToSql` are strong-named (signed with `CodeSmith.Data.snk`) for compatibility with existing generated assemblies.
 - This solution has no test project — coverage is provided indirectly through the PLINQO end-to-end tests.

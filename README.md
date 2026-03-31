@@ -1,5 +1,7 @@
 # OpenSmith
 
+> **Note:** This is a minimal, naive reimplementation that has only been tested to support a single particular PLINQO setup. It is not a general-purpose replacement for CodeSmith Generator.
+
 A minimal .NET reimplementation of the [CodeSmith Generator](https://www.codesmithtools.com/) template engine and [PLINQO](https://github.com/codesmithtools/Templates) (Professional LINQ to Objects) code generation templates.
 
 The original CodeSmith Generator is a proprietary, Windows-only code generation tool. This project extracts and modernises the core functionality into standalone .NET 10 libraries — no CodeSmith installation required.
@@ -96,7 +98,7 @@ See [`plinqo/src/OpenSmith.Plinqo/Templates/Sample-Generator.csp`](plinqo/src/Op
 ### 3. Run the generator
 
 ```bash
-opensmith MyProject/Generator.csp [--verbose] [--no-cache]
+opensmith MyProject/Generator.csp [--verbose] [--no-cache] [--clear-cache]
 ```
 
 The CLI processes each `<propertySet>` in order:

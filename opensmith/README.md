@@ -10,6 +10,7 @@ A minimal .NET reimplementation of the CodeSmith Generator template engine. Pars
 | **OpenSmith.Compilation** | CSP/CST parser, Roslyn-based template compiler, template registry for dependency resolution, and SHA256-based disk cache |
 | **OpenSmith.SchemaExplorer** | SQL Server schema exploration — queries tables, views, stored procedures, functions, columns, indexes, and constraints via `Microsoft.Data.SqlClient` |
 | **OpenSmith.Cli** | Command-line tool that orchestrates the full pipeline: parse a `.csp` file, resolve templates, compile, and execute |
+| **OpenSmith.Sdk.TemplatePackage** | MSBuild SDK that packages `.cst` templates as NuGet packages and copies them into consuming projects on first build |
 
 ## Architecture
 
@@ -28,7 +29,7 @@ CSP file ──► CspParser ──► TemplateRegistry ──► TemplateCodeGe
 ## CLI Usage
 
 ```bash
-opensmith <path-to-project.csp> [--verbose] [--no-cache]
+opensmith <path-to-project.csp> [--verbose] [--no-cache] [--clear-cache]
 ```
 
 ## Tests
@@ -37,4 +38,5 @@ opensmith <path-to-project.csp> [--verbose] [--no-cache]
 |---------|--------|
 | **OpenSmith.Tests** | Engine utilities, template parsing, merge strategies, SQL schema provider (integration via Testcontainers) |
 | **OpenSmith.Compilation.Tests** | CSP parsing, property deserialisation, code generation, compilation, template registry |
+| **OpenSmith.Sdk.TemplatePackage.Tests** | Template package SDK integration tests |
 | **OpenSmith.Benchmarks** | BenchmarkDotNet performance tests for every pipeline stage |
