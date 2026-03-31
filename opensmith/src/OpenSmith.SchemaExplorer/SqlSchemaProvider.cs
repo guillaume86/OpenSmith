@@ -62,6 +62,20 @@ public class SqlSchemaProvider
         ["sql_variant"] = (typeof(object), DbType.Object),
     };
 
+    // ── Raw-data records (returned by Fetch methods, consumed by Apply methods) ──
+
+    private record struct RawPrimaryKey(string SchemaName, string TableName, string ColumnName);
+    private record struct RawUniqueColumn(string SchemaName, string TableName, string ColumnName);
+    private record struct RawForeignKey(string FKName, string FKSchema, string FKTable, string FKColumn,
+        string PKSchema, string PKTable, string PKColumn);
+    private record struct RawCascadeDelete(string FKName, string FKSchema, string FKTable, byte DeleteAction);
+    private record struct RawExtendedProperty(string SchemaName, string ObjectName, string ColumnName,
+        string PropertyName, object PropertyValue);
+    private record struct RawSyntheticColumn(string SchemaName, string TableName, string ColumnName,
+        bool IsIdentity, bool IsComputed);
+
+    // ── Orchestration ────────────────────────────────────────────────────────────
+
     public DatabaseSchema GetDatabaseSchema(string connectionString)
     {
         using var connection = new SqlConnection(connectionString);
@@ -86,7 +100,7 @@ public class SqlSchemaProvider
 
         // Determine how many extra connections we need for the parallel phase.
         // Open them now so they warm up while Phase 1 runs on the main connection.
-        int extraConnCount = 3; // PKs+Unique, FKs+Cascade, ExtProps+Synthetic
+        int extraConnCount = 4; // PK, Unique, FK+Cascade, ExtProps+Synthetic
         if (IncludeViews) extraConnCount++;
         if (IncludeFunctions) extraConnCount++;
 
@@ -108,30 +122,37 @@ public class SqlSchemaProvider
 
         try
         {
-            // Phase 2: Parallel queries — each task uses a pre-opened connection.
-            // Grouping avoids races on shared collections (ExtendedProperties).
+            // Phase 2: Parallel SQL fetches — each task returns raw data, no shared
+            // mutable state is read or written, so no ordering constraints exist.
             int ci = 0;
+
+            List<RawPrimaryKey> rawPKs = null;
+            List<RawUniqueColumn> rawUniques = null;
+            List<RawForeignKey> rawFKs = null;
+            List<RawCascadeDelete> rawCascades = null;
+            List<RawExtendedProperty> rawExtProps = null;
+            List<RawSyntheticColumn> rawSynthetics = null;
+
             var tasks = new List<Task>();
 
-            var connPkUnique = extraConns[ci++];
-            tasks.Add(Task.Run(() =>
-            {
-                LoadPrimaryKeys(connPkUnique, tableIndex, columnIndex);
-                LoadUniqueConstraints(connPkUnique, tableIndex);
-            }));
+            var connPk = extraConns[ci++];
+            tasks.Add(Task.Run(() => { rawPKs = FetchPrimaryKeys(connPk); }));
+
+            var connUnique = extraConns[ci++];
+            tasks.Add(Task.Run(() => { rawUniques = FetchUniqueConstraints(connUnique); }));
 
             var connFk = extraConns[ci++];
             tasks.Add(Task.Run(() =>
             {
-                LoadForeignKeys(connFk, db, tableIndex, columnIndex);
-                LoadCascadeDeleteProperties(connFk, tableIndex);
+                rawFKs = FetchForeignKeys(connFk);
+                rawCascades = FetchCascadeDelete(connFk);
             }));
 
             var connExtProps = extraConns[ci++];
             tasks.Add(Task.Run(() =>
             {
-                LoadExtendedProperties(connExtProps, tableIndex, columnIndex);
-                LoadSyntheticColumnProperties(connExtProps, tableIndex);
+                rawExtProps = FetchExtendedProperties(connExtProps);
+                rawSynthetics = FetchSyntheticColumns(connExtProps);
             }));
 
             if (IncludeViews)
@@ -154,6 +175,16 @@ public class SqlSchemaProvider
             }
 
             Task.WaitAll(tasks.ToArray());
+
+            // Phase 3: Sequential object-graph build from raw data.
+            // No ordering constraints — each Apply touches disjoint properties —
+            // but PK/Unique before FK is clearest.
+            ApplyPrimaryKeys(rawPKs, tableIndex, columnIndex);
+            ApplyUniqueConstraints(rawUniques, tableIndex);
+            ApplyForeignKeys(rawFKs, db, tableIndex, columnIndex);
+            ApplyCascadeDelete(rawCascades, tableIndex);
+            ApplyExtendedProperties(rawExtProps, tableIndex, columnIndex);
+            ApplySyntheticColumns(rawSynthetics, tableIndex);
         }
         finally
         {
@@ -163,6 +194,8 @@ public class SqlSchemaProvider
 
         return db;
     }
+
+    // ── Phase 1: Table & column loading (sequential, builds indexes) ─────────────
 
     private static void LoadTables(SqlConnection connection, DatabaseSchema db, Dictionary<string, TableSchema> tableIndex)
     {
@@ -245,15 +278,14 @@ public class SqlSchemaProvider
         }
     }
 
-    private static void LoadPrimaryKeys(SqlConnection connection,
-        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    // ── Phase 2: Fetch methods (pure SQL → raw data, no side effects) ────────────
+
+    private static List<RawPrimaryKey> FetchPrimaryKeys(SqlConnection connection)
     {
         const string sql = """
             SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
                    t.name AS TableName,
-                   i.name AS PKName,
-                   c.name AS ColumnName,
-                   ic.key_ordinal AS KeyOrdinal
+                   c.name AS ColumnName
             FROM sys.indexes i
             JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
             JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
@@ -262,38 +294,15 @@ public class SqlSchemaProvider
             ORDER BY SchemaName, TableName, ic.key_ordinal
             """;
 
+        var results = new List<RawPrimaryKey>();
         using var cmd = new SqlCommand(sql, connection);
         using var reader = cmd.ExecuteReader();
-
         while (reader.Read())
-        {
-            var schemaName = reader.GetString(0);
-            var tableName = reader.GetString(1);
-            var tableKey = $"{schemaName}.{tableName}";
-            var columnName = reader.GetString(3);
-
-            if (!tableIndex.TryGetValue(tableKey, out var table))
-                continue;
-
-            if (table.PrimaryKey == null)
-            {
-                table.PrimaryKey = new PrimaryKeySchema();
-                table.HasPrimaryKey = true;
-            }
-
-            var colKey = $"{tableKey}.{columnName}";
-            columnIndex.TryGetValue(colKey, out var sourceColumn);
-
-            if (sourceColumn != null)
-                sourceColumn.IsPrimaryKeyMember = true;
-
-            var memberColumn = CreateMemberColumn(sourceColumn, columnName);
-            memberColumn.IsPrimaryKeyMember = true;
-            table.PrimaryKey.MemberColumns.Add(memberColumn);
-        }
+            results.Add(new RawPrimaryKey(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+        return results;
     }
 
-    private static void LoadUniqueConstraints(SqlConnection connection, Dictionary<string, TableSchema> tableIndex)
+    private static List<RawUniqueColumn> FetchUniqueConstraints(SqlConnection connection)
     {
         const string sql = """
             SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
@@ -309,26 +318,15 @@ public class SqlSchemaProvider
                    WHERE ic2.object_id = i.object_id AND ic2.index_id = i.index_id) = 1
             """;
 
+        var results = new List<RawUniqueColumn>();
         using var cmd = new SqlCommand(sql, connection);
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
-        {
-            var schemaName = reader.GetString(0);
-            var tableName = reader.GetString(1);
-            var columnName = reader.GetString(2);
-            var tableKey = $"{schemaName}.{tableName}";
-
-            if (!tableIndex.TryGetValue(tableKey, out var table))
-                continue;
-
-            var column = FindColumn(table, columnName);
-            if (column != null)
-                column.IsUnique = true;
-        }
+            results.Add(new RawUniqueColumn(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+        return results;
     }
 
-    private static void LoadForeignKeys(SqlConnection connection, DatabaseSchema db,
-        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    private static List<RawForeignKey> FetchForeignKeys(SqlConnection connection)
     {
         const string sql = """
             SELECT fk.name AS FKName,
@@ -348,28 +346,143 @@ public class SqlSchemaProvider
             ORDER BY FKName, Ordinal
             """;
 
+        var results = new List<RawForeignKey>();
         using var cmd = new SqlCommand(sql, connection);
         using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            results.Add(new RawForeignKey(
+                reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
+                reader.GetString(4), reader.GetString(5), reader.GetString(6)));
+        return results;
+    }
 
+    private static List<RawCascadeDelete> FetchCascadeDelete(SqlConnection connection)
+    {
+        const string sql = """
+            SELECT fk.name AS FKName,
+                   SCHEMA_NAME(fkt.schema_id) AS FKSchemaName,
+                   fkt.name AS FKTableName,
+                   fk.delete_referential_action AS DeleteAction
+            FROM sys.foreign_keys fk
+            JOIN sys.tables fkt ON fk.parent_object_id = fkt.object_id
+            """;
+
+        var results = new List<RawCascadeDelete>();
+        using var cmd = new SqlCommand(sql, connection);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            results.Add(new RawCascadeDelete(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetByte(3)));
+        return results;
+    }
+
+    private static List<RawExtendedProperty> FetchExtendedProperties(SqlConnection connection)
+    {
+        const string sql = """
+            SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
+                   t.name AS ObjectName,
+                   c.name AS ColumnName,
+                   ep.name AS PropertyName,
+                   ep.value AS PropertyValue
+            FROM sys.extended_properties ep
+            JOIN sys.tables t ON ep.major_id = t.object_id AND ep.class = 1
+            LEFT JOIN sys.columns c ON ep.major_id = c.object_id AND ep.minor_id = c.column_id AND ep.minor_id > 0
+            ORDER BY SchemaName, ObjectName, ColumnName, PropertyName
+            """;
+
+        var results = new List<RawExtendedProperty>();
+        using var cmd = new SqlCommand(sql, connection);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            results.Add(new RawExtendedProperty(
+                reader.GetString(0), reader.GetString(1),
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.GetString(3), reader.GetValue(4)));
+        return results;
+    }
+
+    private static List<RawSyntheticColumn> FetchSyntheticColumns(SqlConnection connection)
+    {
+        const string sql = """
+            SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
+                   t.name AS TableName,
+                   c.name AS ColumnName,
+                   c.is_identity AS IsIdentity,
+                   c.is_computed AS IsComputed
+            FROM sys.columns c
+            JOIN sys.tables t ON c.object_id = t.object_id
+            WHERE t.is_ms_shipped = 0
+            """;
+
+        var results = new List<RawSyntheticColumn>();
+        using var cmd = new SqlCommand(sql, connection);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            results.Add(new RawSyntheticColumn(
+                reader.GetString(0), reader.GetString(1), reader.GetString(2),
+                reader.GetBoolean(3), reader.GetBoolean(4)));
+        return results;
+    }
+
+    // ── Phase 3: Apply methods (object-graph mutation, no I/O) ───────────────────
+
+    private static void ApplyPrimaryKeys(List<RawPrimaryKey> rows,
+        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    {
+        foreach (var row in rows)
+        {
+            var tableKey = $"{row.SchemaName}.{row.TableName}";
+
+            if (!tableIndex.TryGetValue(tableKey, out var table))
+                continue;
+
+            if (table.PrimaryKey == null)
+            {
+                table.PrimaryKey = new PrimaryKeySchema();
+                table.HasPrimaryKey = true;
+            }
+
+            var colKey = $"{tableKey}.{row.ColumnName}";
+            columnIndex.TryGetValue(colKey, out var sourceColumn);
+
+            if (sourceColumn != null)
+                sourceColumn.IsPrimaryKeyMember = true;
+
+            var memberColumn = CreateMemberColumn(sourceColumn, row.ColumnName);
+            memberColumn.IsPrimaryKeyMember = true;
+            table.PrimaryKey.MemberColumns.Add(memberColumn);
+        }
+    }
+
+    private static void ApplyUniqueConstraints(List<RawUniqueColumn> rows,
+        Dictionary<string, TableSchema> tableIndex)
+    {
+        foreach (var row in rows)
+        {
+            var tableKey = $"{row.SchemaName}.{row.TableName}";
+
+            if (!tableIndex.TryGetValue(tableKey, out var table))
+                continue;
+
+            var column = FindColumn(table, row.ColumnName);
+            if (column != null)
+                column.IsUnique = true;
+        }
+    }
+
+    private static void ApplyForeignKeys(List<RawForeignKey> rows, DatabaseSchema db,
+        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    {
         // Group FK columns by FK name
         var fkData = new Dictionary<string, (string FKSchema, string FKTable, string PKSchema, string PKTable,
             List<string> FKColumns, List<string> PKColumns)>(StringComparer.OrdinalIgnoreCase);
 
-        while (reader.Read())
+        foreach (var row in rows)
         {
-            var fkName = reader.GetString(0);
-            var fkSchema = reader.GetString(1);
-            var fkTableName = reader.GetString(2);
-            var fkColumnName = reader.GetString(3);
-            var pkSchema = reader.GetString(4);
-            var pkTableName = reader.GetString(5);
-            var pkColumnName = reader.GetString(6);
+            if (!fkData.ContainsKey(row.FKName))
+                fkData[row.FKName] = (row.FKSchema, row.FKTable, row.PKSchema, row.PKTable, new List<string>(), new List<string>());
 
-            if (!fkData.ContainsKey(fkName))
-                fkData[fkName] = (fkSchema, fkTableName, pkSchema, pkTableName, new List<string>(), new List<string>());
-
-            fkData[fkName].FKColumns.Add(fkColumnName);
-            fkData[fkName].PKColumns.Add(pkColumnName);
+            fkData[row.FKName].FKColumns.Add(row.FKColumn);
+            fkData[row.FKName].PKColumns.Add(row.PKColumn);
         }
 
         foreach (var (fkName, data) in fkData)
@@ -413,129 +526,78 @@ public class SqlSchemaProvider
         }
     }
 
-    private static void LoadExtendedProperties(SqlConnection connection,
-        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    private static void ApplyCascadeDelete(List<RawCascadeDelete> rows,
+        Dictionary<string, TableSchema> tableIndex)
     {
-        const string sql = """
-            SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
-                   t.name AS ObjectName,
-                   c.name AS ColumnName,
-                   ep.name AS PropertyName,
-                   ep.value AS PropertyValue
-            FROM sys.extended_properties ep
-            JOIN sys.tables t ON ep.major_id = t.object_id AND ep.class = 1
-            LEFT JOIN sys.columns c ON ep.major_id = c.object_id AND ep.minor_id = c.column_id AND ep.minor_id > 0
-            ORDER BY SchemaName, ObjectName, ColumnName, PropertyName
-            """;
-
-        using var cmd = new SqlCommand(sql, connection);
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
+        foreach (var row in rows)
         {
-            var schemaName = reader.GetString(0);
-            var objectName = reader.GetString(1);
-            var columnName = reader.IsDBNull(2) ? null : reader.GetString(2);
-            var propertyName = reader.GetString(3);
-            var propertyValue = reader.GetValue(4);
-
-            var tableKey = $"{schemaName}.{objectName}";
-
-            if (columnName != null)
-            {
-                var colKey = $"{tableKey}.{columnName}";
-                if (columnIndex.TryGetValue(colKey, out var column))
-                    column.ExtendedProperties.Add(new ExtendedProperty { Name = propertyName, Value = propertyValue });
-            }
-            else
-            {
-                if (tableIndex.TryGetValue(tableKey, out var table))
-                    table.ExtendedProperties.Add(new ExtendedProperty { Name = propertyName, Value = propertyValue });
-            }
-        }
-    }
-
-    private static void LoadSyntheticColumnProperties(SqlConnection connection, Dictionary<string, TableSchema> tableIndex)
-    {
-        const string sql = """
-            SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
-                   t.name AS TableName,
-                   c.name AS ColumnName,
-                   c.is_identity AS IsIdentity,
-                   c.is_computed AS IsComputed
-            FROM sys.columns c
-            JOIN sys.tables t ON c.object_id = t.object_id
-            WHERE t.is_ms_shipped = 0
-            """;
-
-        using var cmd = new SqlCommand(sql, connection);
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var schemaName = reader.GetString(0);
-            var tableName = reader.GetString(1);
-            var columnName = reader.GetString(2);
-            var isIdentity = reader.GetBoolean(3);
-            var isComputed = reader.GetBoolean(4);
-
-            var tableKey = $"{schemaName}.{tableName}";
-            if (!tableIndex.TryGetValue(tableKey, out var table))
-                continue;
-
-            var column = FindColumn(table, columnName);
-            if (column == null)
-                continue;
-
-            column.ExtendedProperties.Add(new ExtendedProperty
-            {
-                Name = "CS_IsIdentity",
-                Value = isIdentity.ToString().ToLower()
-            });
-            column.ExtendedProperties.Add(new ExtendedProperty
-            {
-                Name = "CS_IsComputed",
-                Value = isComputed.ToString().ToLower()
-            });
-        }
-    }
-
-    private static void LoadCascadeDeleteProperties(SqlConnection connection, Dictionary<string, TableSchema> tableIndex)
-    {
-        const string sql = """
-            SELECT fk.name AS FKName,
-                   SCHEMA_NAME(fkt.schema_id) AS FKSchemaName,
-                   fkt.name AS FKTableName,
-                   fk.delete_referential_action AS DeleteAction
-            FROM sys.foreign_keys fk
-            JOIN sys.tables fkt ON fk.parent_object_id = fkt.object_id
-            """;
-
-        using var cmd = new SqlCommand(sql, connection);
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var fkName = reader.GetString(0);
-            var fkSchema = reader.GetString(1);
-            var fkTableName = reader.GetString(2);
-            var deleteAction = reader.GetByte(3);
-
-            var tableKey = $"{fkSchema}.{fkTableName}";
+            var tableKey = $"{row.FKSchema}.{row.FKTable}";
             if (!tableIndex.TryGetValue(tableKey, out var table))
                 continue;
 
             foreach (var fk in table.ForeignKeys)
             {
-                if (fk.Name == fkName)
+                if (fk.Name == row.FKName)
                 {
                     fk.ExtendedProperties.Add(new ExtendedProperty
                     {
                         Name = "CS_CascadeDelete",
-                        Value = deleteAction == 1 // CASCADE
+                        Value = row.DeleteAction == 1 // CASCADE
                     });
                     break;
                 }
             }
         }
     }
+
+    private static void ApplyExtendedProperties(List<RawExtendedProperty> rows,
+        Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
+    {
+        foreach (var row in rows)
+        {
+            var tableKey = $"{row.SchemaName}.{row.ObjectName}";
+
+            if (row.ColumnName != null)
+            {
+                var colKey = $"{tableKey}.{row.ColumnName}";
+                if (columnIndex.TryGetValue(colKey, out var column))
+                    column.ExtendedProperties.Add(new ExtendedProperty { Name = row.PropertyName, Value = row.PropertyValue });
+            }
+            else
+            {
+                if (tableIndex.TryGetValue(tableKey, out var table))
+                    table.ExtendedProperties.Add(new ExtendedProperty { Name = row.PropertyName, Value = row.PropertyValue });
+            }
+        }
+    }
+
+    private static void ApplySyntheticColumns(List<RawSyntheticColumn> rows,
+        Dictionary<string, TableSchema> tableIndex)
+    {
+        foreach (var row in rows)
+        {
+            var tableKey = $"{row.SchemaName}.{row.TableName}";
+            if (!tableIndex.TryGetValue(tableKey, out var table))
+                continue;
+
+            var column = FindColumn(table, row.ColumnName);
+            if (column == null)
+                continue;
+
+            column.ExtendedProperties.Add(new ExtendedProperty
+            {
+                Name = "CS_IsIdentity",
+                Value = row.IsIdentity.ToString().ToLower()
+            });
+            column.ExtendedProperties.Add(new ExtendedProperty
+            {
+                Name = "CS_IsComputed",
+                Value = row.IsComputed.ToString().ToLower()
+            });
+        }
+    }
+
+    // ── Self-contained loaders (Views, Commands — no cross-dependencies) ─────────
 
     private static void LoadViews(SqlConnection connection, DatabaseSchema db)
     {
@@ -897,6 +959,8 @@ public class SqlSchemaProvider
                 command.CommandResults.Add(result);
         } while (reader.NextResult());
     }
+
+    // ── Utilities ────────────────────────────────────────────────────────────────
 
     private static (Type SystemType, DbType DbType) ResolveType(string nativeType)
     {

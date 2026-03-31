@@ -213,8 +213,8 @@ public class DbmlGeneratorCustomAssociationNamingTests : IDisposable
         var reverseAssoc = customerTable.Type.Associations.First(a => a.IsForeignKey != true);
 
         // Hrweb reverse: "Order" prefix + "Order" table = "OrderOrder"
-        // But ListSuffix is NOT applied when custom name is returned
-        Assert.Equal("OrderOrder", reverseAssoc.Member);
+        // ListSuffix is applied even to custom names (one-to-many relationship)
+        Assert.Equal("OrderOrderList", reverseAssoc.Member);
     }
 
     [Fact]
@@ -279,6 +279,6 @@ public class DbmlGeneratorCustomAssociationNamingTests : IDisposable
 
         var customerTable = database.Tables.First(t => t.Member == "Customer");
         var reverseAssoc = customerTable.Type.Associations.First(a => a.IsForeignKey != true);
-        Assert.Equal("OrderOrder", reverseAssoc.Member);
+        Assert.Equal("OrderOrderList", reverseAssoc.Member);
     }
 }
