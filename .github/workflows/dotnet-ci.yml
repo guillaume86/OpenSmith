@@ -17,11 +17,6 @@ on:
         required: false
         type: string
         default: ""
-      pre-pack-projects:
-        required: false
-        type: string
-        default: ""
-        description: Newline-separated .csproj paths to pack first into artifacts/packages (for dependency resolution)
     secrets:
       nuget-api-key:
         required: false
@@ -60,15 +55,8 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      - name: Pack pre-requisite projects
-        if: inputs.pre-pack-projects != ''
-        run: |
-          while IFS= read -r project; do
-            [ -z "$project" ] && continue
-            echo "::group::Packing $project"
-            dotnet pack "$project" -c Release -o artifacts/packages
-            echo "::endgroup::"
-          done <<< "${{ inputs.pre-pack-projects }}"
+      - name: Disable local-only NuGet source mapping
+        run: dotnet nuget remove source local
 
       - name: Pack
         run: |
