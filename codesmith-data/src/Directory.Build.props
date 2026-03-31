@@ -3,9 +3,7 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
 
   <PropertyGroup>
-    <Company>CodeSmith Tools, LLC</Company>
     <Product>PLINQO</Product>
-    <Copyright>Copyright (c) 2002-2011 CodeSmith Tools, LLC. All rights reserved.</Copyright>
     <MinVerTagPrefix>codesmith-data/v</MinVerTagPrefix>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>1591;1574;1723</NoWarn>
