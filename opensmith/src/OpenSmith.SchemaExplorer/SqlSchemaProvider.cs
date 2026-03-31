@@ -429,9 +429,6 @@ public class SqlSchemaProvider
     private static void ApplyPrimaryKeys(List<RawPrimaryKey> rows,
         Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
     {
-        // Track PK columns per table with their key_ordinal for reordering.
-        var pkColumnsByTable = new Dictionary<string, List<(ColumnSchema Column, int KeyOrdinal)>>();
-
         foreach (var row in rows)
         {
             var tableKey = $"{row.SchemaName}.{row.TableName}";
@@ -449,51 +446,15 @@ public class SqlSchemaProvider
             columnIndex.TryGetValue(colKey, out var sourceColumn);
 
             if (sourceColumn != null)
-            {
                 sourceColumn.IsPrimaryKeyMember = true;
 
-                if (!pkColumnsByTable.ContainsKey(tableKey))
-                    pkColumnsByTable[tableKey] = new List<(ColumnSchema, int)>();
-                pkColumnsByTable[tableKey].Add((sourceColumn, row.KeyOrdinal));
-            }
-
+            // MemberColumns are added in key_ordinal order (rows come sorted by
+            // key_ordinal from the SQL query), which is what FK correspondence needs.
+            // table.Columns is intentionally NOT reordered — it must stay in column_id
+            // order to match CodeSmith behavior.
             var memberColumn = CreateMemberColumn(sourceColumn, row.ColumnName);
             memberColumn.IsPrimaryKeyMember = true;
             table.PrimaryKey.MemberColumns.Add(memberColumn);
-        }
-
-        // Reorder each table's Columns so PK columns appear in key_ordinal order
-        // while non-PK columns keep their original relative order.
-        foreach (var (tableKey, pkCols) in pkColumnsByTable)
-        {
-            if (pkCols.Count < 2)
-                continue; // single-column PK — nothing to reorder
-
-            var table = tableIndex[tableKey];
-            var pkSet = new HashSet<ColumnSchema>(pkCols.Select(p => p.Column));
-
-            // Check if PKs are already in key_ordinal order
-            var pkInTableOrder = table.Columns.Where(c => pkSet.Contains(c)).ToList();
-            var pkInKeyOrder = pkCols.OrderBy(p => p.KeyOrdinal).Select(p => p.Column).ToList();
-
-            bool alreadyCorrect = pkInTableOrder.SequenceEqual(pkInKeyOrder);
-            if (alreadyCorrect)
-                continue;
-
-            // Rebuild the Columns collection: replace PK columns with key_ordinal-ordered ones
-            var reordered = new List<ColumnSchema>(table.Columns.Count);
-            int pkIndex = 0;
-            foreach (var col in table.Columns)
-            {
-                if (pkSet.Contains(col))
-                    reordered.Add(pkInKeyOrder[pkIndex++]);
-                else
-                    reordered.Add(col);
-            }
-
-            table.Columns.Clear();
-            foreach (var col in reordered)
-                table.Columns.Add(col);
         }
     }
 

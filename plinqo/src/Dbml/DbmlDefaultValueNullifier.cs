@@ -90,7 +90,12 @@ public static partial class Dbml
                 if (otherAssociation != null)
                 {
                     Type type = TypeFromTypeName(otherAssociation.Type);
-                    if ((type != null) && IsPrimaryKeyOfType(type, association.GetThisKey()))
+                    // Only null out single-column keys. Composite keys must preserve
+                    // their order through the nullify→fill round-trip, and
+                    // GetPrimaryKeys() would reconstruct them in column_id order
+                    // which may differ from the FK constraint order.
+                    if ((type != null) && association.GetThisKey().Length <= 1
+                        && IsPrimaryKeyOfType(type, association.GetThisKey()))
                         association.SetThisKey(null);
                 }
             }
@@ -98,7 +103,8 @@ public static partial class Dbml
             if (association.IsForeignKey == true)
             {
                 Type type = TypeFromTypeName(association.Type);
-                if ((type != null) && IsPrimaryKeyOfType(type, association.GetOtherKey()))
+                if ((type != null) && association.GetOtherKey().Length <= 1
+                    && IsPrimaryKeyOfType(type, association.GetOtherKey()))
                     association.SetOtherKey(null);
             }
 
