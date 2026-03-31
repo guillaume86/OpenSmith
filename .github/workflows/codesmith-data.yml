@@ -21,8 +21,6 @@ jobs:
       solution-path: codesmith-data/CodeSmith.Data.slnx
       tag-prefix: codesmith-data/v
       pack-projects: |
-        codesmith-data/src/CodeSmith.Data/CodeSmith.Data.csproj
         codesmith-data/src/CodeSmith.Data.LinqToSql/CodeSmith.Data.LinqToSql.csproj
-        codesmith-data/src/CodeSmith.Data.Memcached/CodeSmith.Data.Memcached.csproj
     secrets:
       nuget-api-key: ${{ secrets.NUGET_API_KEY }}
