@@ -61,20 +61,9 @@ public static partial class Dbml
 
             if ((association.GetOtherKey().Length == 0) && (association.IsForeignKey == true))
             {
-                // Prefer the partner's ThisKey to preserve column correspondence order.
-                // GetPrimaryKeys returns columns in table-definition order which may not
-                // match the FK's ThisKey order for composite keys.
-                if (associationPartners.TryGetValue(association, out var partner)
-                    && partner != null && partner.GetThisKey().Length > 0)
-                {
-                    association.SetOtherKey(partner.GetThisKey());
-                }
-                else
-                {
-                    Type type2 = TypeFromTypeName(association.Type);
-                    if (type2 != null)
-                        association.SetOtherKey(GetPrimaryKeys(type2));
-                }
+                Type type2 = TypeFromTypeName(association.Type);
+                if (type2 != null)
+                    association.SetOtherKey(GetPrimaryKeys(type2));
             }
             return association;
         }
