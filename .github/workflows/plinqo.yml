@@ -1,0 +1,31 @@
+name: Plinqo CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plinqo/**"
+      - "NuGet.config"
+    tags:
+      - "plinqo/v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "plinqo/**"
+      - "NuGet.config"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/dotnet-ci.yml
+    with:
+      solution-path: plinqo/OpenSmith.Plinqo.slnx
+      tag-prefix: plinqo/v
+      pack-projects: |
+        plinqo/src/OpenSmith.Plinqo/OpenSmith.Plinqo.csproj
+      extra-pack-args: -p:UseLocalProjects=false
+      pre-pack-projects: |
+        opensmith/src/OpenSmith/OpenSmith.csproj
+        opensmith/src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj
+        opensmith/src/OpenSmith.Sdk.TemplatePackage/OpenSmith.Sdk.TemplatePackage.csproj
+    secrets:
+      nuget-api-key: ${{ secrets.NUGET_API_KEY }}

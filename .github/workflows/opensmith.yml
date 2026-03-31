@@ -1,0 +1,30 @@
+name: OpenSmith CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "opensmith/**"
+      - "NuGet.config"
+    tags:
+      - "opensmith/v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "opensmith/**"
+      - "NuGet.config"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/dotnet-ci.yml
+    with:
+      solution-path: opensmith/OpenSmith.slnx
+      tag-prefix: opensmith/v
+      pack-projects: |
+        opensmith/src/OpenSmith/OpenSmith.csproj
+        opensmith/src/OpenSmith.Compilation/OpenSmith.Compilation.csproj
+        opensmith/src/OpenSmith.SchemaExplorer/OpenSmith.SchemaExplorer.csproj
+        opensmith/src/OpenSmith.Cli/OpenSmith.Cli.csproj
+        opensmith/src/OpenSmith.Sdk.TemplatePackage/OpenSmith.Sdk.TemplatePackage.csproj
+    secrets:
+      nuget-api-key: ${{ secrets.NUGET_API_KEY }}

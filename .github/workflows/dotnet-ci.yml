@@ -1,0 +1,87 @@
+name: .NET CI
+
+on:
+  workflow_call:
+    inputs:
+      solution-path:
+        required: true
+        type: string
+      tag-prefix:
+        required: true
+        type: string
+      pack-projects:
+        required: true
+        type: string
+        description: Newline-separated list of .csproj paths to pack
+      extra-pack-args:
+        required: false
+        type: string
+        default: ""
+      pre-pack-projects:
+        required: false
+        type: string
+        default: ""
+        description: Newline-separated .csproj paths to pack first into artifacts/packages (for dependency resolution)
+    secrets:
+      nuget-api-key:
+        required: false
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Restore
+        run: dotnet restore ${{ inputs.solution-path }}
+
+      - name: Build
+        run: dotnet build ${{ inputs.solution-path }} --no-restore
+
+      - name: Test
+        run: dotnet test ${{ inputs.solution-path }} --no-build
+
+  pack-and-publish:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, inputs.tag-prefix)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Pack pre-requisite projects
+        if: inputs.pre-pack-projects != ''
+        run: |
+          while IFS= read -r project; do
+            [ -z "$project" ] && continue
+            echo "::group::Packing $project"
+            dotnet pack "$project" -c Release -o artifacts/packages
+            echo "::endgroup::"
+          done <<< "${{ inputs.pre-pack-projects }}"
+
+      - name: Pack
+        run: |
+          while IFS= read -r project; do
+            [ -z "$project" ] && continue
+            echo "::group::Packing $project"
+            dotnet pack "$project" -c Release -o artifacts/packages ${{ inputs.extra-pack-args }}
+            echo "::endgroup::"
+          done <<< "${{ inputs.pack-projects }}"
+
+      - name: Publish to NuGet
+        run: >-
+          dotnet nuget push "artifacts/packages/*.nupkg"
+          --api-key ${{ secrets.nuget-api-key }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
