@@ -13,3 +13,14 @@ Legacy data access library extracted from the [codesmithtools/Templates](https:/
 ## Notes
 
 - This solution has no test project — coverage is provided indirectly through the PLINQO end-to-end tests.
+
+## Publishing
+
+Versioning is handled by [MinVer](https://github.com/adamralph/minver) from git tags.
+
+```bash
+git tag codesmith-data/v1.0.0
+git push origin codesmith-data/v1.0.0
+```
+
+Pushing the tag triggers CI, which packs all projects and publishes to nuget.org.

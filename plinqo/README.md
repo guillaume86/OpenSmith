@@ -41,3 +41,16 @@ Generated files are fully regenerated on each run. Editable files are only creat
 ## Tests
 
 **OpenSmith.Plinqo.Tests** covers the DBML generator (all-tables, ignore-column, delete-on-null, baseline comparisons) and end-to-end code generation, using the AdventureWorks sample database via Testcontainers.
+
+## Publishing
+
+Versioning is handled by [MinVer](https://github.com/adamralph/minver) from git tags.
+
+```bash
+git tag plinqo/v1.0.0
+git push origin plinqo/v1.0.0
+```
+
+Pushing the tag triggers CI, which packs and publishes to nuget.org.
+
+> **Note:** Plinqo depends on OpenSmith NuGet packages. The CI workflow packs OpenSmith locally for dependency resolution, but the published packages will reference the OpenSmith versions on nuget.org. Ensure the required OpenSmith version is published first.

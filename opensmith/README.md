@@ -40,3 +40,14 @@ opensmith <path-to-project.csp> [--verbose] [--no-cache] [--clear-cache]
 | **OpenSmith.Compilation.Tests** | CSP parsing, property deserialisation, code generation, compilation, template registry |
 | **OpenSmith.Sdk.TemplatePackage.Tests** | Template package SDK integration tests |
 | **OpenSmith.Benchmarks** | BenchmarkDotNet performance tests for every pipeline stage |
+
+## Publishing
+
+Versioning is handled by [MinVer](https://github.com/adamralph/minver) from git tags.
+
+```bash
+git tag opensmith/v1.0.0
+git push origin opensmith/v1.0.0
+```
+
+Pushing the tag triggers CI, which packs all projects and publishes to nuget.org.
