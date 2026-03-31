@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <OpenSmithVersion>1.0.0</OpenSmithVersion>
+    <OpenSmithVersion>1.0.1</OpenSmithVersion>
     <OpenSmithRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../opensmith/src'))</OpenSmithRoot>
     <!-- Default: swap PackageReferences to ProjectReferences for local dev.
          Override with -p:UseLocalProjects=false for pack/CI (requires packages on a NuGet feed). -->
