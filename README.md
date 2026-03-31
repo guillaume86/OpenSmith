@@ -125,6 +125,24 @@ Files ending in `.Generated.cs` are fully overwritten on each run. `.Editable.cs
 
 When the database schema changes, re-run `opensmith` to regenerate. Your editable partial classes remain untouched.
 
+## Development
+
+### Versioning
+
+Each solution is versioned independently using [MinVer](https://github.com/adamralph/minver), which derives the version from git tags.
+
+Tag format: `{solution}/v{semver}` (e.g., `opensmith/v1.2.0`, `plinqo/v1.0.0`, `codesmith-data/v1.0.0`).
+
+To release a new version:
+
+```bash
+# Tag the current commit
+git tag opensmith/v1.2.0
+git push origin opensmith/v1.2.0
+```
+
+Between tags, builds automatically get a prerelease version (e.g., `1.2.1-alpha.0.1`).
+
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
