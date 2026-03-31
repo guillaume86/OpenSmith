@@ -146,6 +146,103 @@ public class TemplateEngineTests
         }
 
         [Fact]
+        public void SplitCodeBlock_DoesNotProduceExtraNewline()
+        {
+            // When <% and %> are on separate lines (split code block),
+            // the newline after %> should not appear in the output.
+            // This reproduces the "extra blank lines between const fields" bug.
+            var cst =
+                "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n" +
+                "<% foreach(var x in items) {\r\n" +
+                "%>\r\n" +
+                "\t\t\tLine\r\n" +
+                "<% } %>\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // The TextNode after the code block should start with \t, not \n\t
+            var textNode = parsed.Nodes.OfType<TextNode>().First();
+            Assert.True(textNode.Text.StartsWith("\t"),
+                $"Expected TextNode to start with tab but got: '{textNode.Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}'");
+        }
+
+        [Fact]
+        public void MultiLineCodeBlock_FollowedByBlankLine_StripsOnlyCodeNewline()
+        {
+            // When a multi-line code block is followed by an intentional blank line + content,
+            // only the code block's trailing newline should be stripped, preserving the blank line.
+            var cst =
+                "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n" +
+                "<% foreach(var x in items) {\r\n" +
+                "    string t = x;\r\n" +
+                "%>\r\n" +
+                "\r\n" +
+                "\t\t\tLine\r\n" +
+                "<% } %>\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // The TextNode should start with exactly one \r\n (the intentional blank line), then \t
+            var textNode = parsed.Nodes.OfType<TextNode>().First();
+            Assert.True(textNode.Text.StartsWith("\r\n\t"),
+                $"Expected TextNode to start with '\\r\\n\\t' but got: '{textNode.Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}'");
+        }
+
+        [Fact]
+        public void InlineConditional_PreservesLeadingWhitespace()
+        {
+            // A line like: \t\t<% if (cond) { %>text<% } %>
+            // should output \t\ttext when cond is true.
+            // The leading whitespace before <% should be preserved in output.
+            var cst =
+                "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n" +
+                "Before\r\n" +
+                "\t\t\t\t<% if (true) { %>set => value;<% } %>\r\n" +
+                "After\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // Should have TextNode with the tabs before the code block
+            var textNodes = parsed.Nodes.OfType<TextNode>().ToList();
+            // The text before "<% if %>" should end with \t\t\t\t
+            Assert.Contains(textNodes, t => t.Text.EndsWith("\t\t\t\t"));
+        }
+
+        [Fact]
+        public void InlineCodeBlock_PreservesFollowingNewline()
+        {
+            // An inline code block like <% } %> on a mixed-content line should NOT
+            // consume the newline that follows it, because the newline separates
+            // template output lines (e.g., the closing brace of a property).
+            var cst =
+                "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n" +
+                "\t\t\t\t<% if (true) { %>set => value;<% } %>\r\n" +
+                "\t\t\t}\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            // The TextNode after the } code block should start with \r\n (the line break before the closing brace)
+            var textNodes = parsed.Nodes.OfType<TextNode>().ToList();
+            var closingBraceNode = textNodes.Last();
+            Assert.True(closingBraceNode.Text.StartsWith("\r\n"),
+                $"Expected closing brace TextNode to start with newline but got: '{closingBraceNode.Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}'");
+        }
+
+        [Fact]
+        public void MultiLineScriptlet_DoesNotAddExtraIndentation()
+        {
+            // When a multi-line scriptlet <% ... %> is followed by content on the next line,
+            // the content should not gain extra indentation from the scriptlet's closing %>.
+            var cst =
+                "<%@ CodeTemplate Language=\"C#\" TargetLanguage=\"Text\" %>\r\n" +
+                "\t\t\t<%\r\n" +
+                "\t\t\t\tvar x = 1;\r\n" +
+                "\t\t\t%>\r\n" +
+                "\t\t\t\treturn x;\r\n";
+            var parsed = CstParser.Parse(cst);
+
+            var textNode = parsed.Nodes.OfType<TextNode>().First();
+            Assert.True(textNode.Text.StartsWith("\t\t\t\treturn"),
+                $"Expected TextNode to start with '\\t\\t\\t\\treturn' but got: '{textNode.Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}'");
+        }
+
+        [Fact]
         public void ParsesScriptBlock()
         {
             var cst = """

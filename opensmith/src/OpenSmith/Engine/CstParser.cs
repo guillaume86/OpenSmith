@@ -55,9 +55,10 @@ public static class CstParser
 
     /// <summary>
     /// After parsing, strip the leading newline from TextNodes that follow multi-line CodeBlockNodes.
-    /// Single-line code blocks are already handled by StripStandaloneCodeLines.
-    /// Multi-line code blocks (where the code spans multiple lines) leave a trailing newline
-    /// after the closing %&gt; that should be consumed.
+    /// Standalone single-line code blocks (like &lt;% if (x) { %&gt; on their own line) have
+    /// their newlines removed by StripStandaloneCodeLines. Split code blocks (where &lt;% and
+    /// %&gt; are on separate lines) have their content trimmed but retain WasMultiLine=true,
+    /// so we can still identify them and consume the trailing newline after %&gt;.
     /// </summary>
     private static void StripCodeBlockNewlines(List<TemplateNode> nodes)
     {
@@ -66,8 +67,8 @@ public static class CstParser
             if (nodes[i] is not CodeBlockNode code)
                 continue;
 
-            // Only strip after multi-line code blocks (code contains newlines)
-            if (!code.Code.Contains('\n'))
+            // Only strip after code blocks that originally spanned multiple lines
+            if (!code.WasMultiLine)
                 continue;
 
             // Strip leading \r\n from following TextNode
@@ -85,14 +86,25 @@ public static class CstParser
         nodes.RemoveAll(n => n is TextNode t && t.Text.Length == 0);
     }
 
-    // Regex to detect lines that contain ONLY code blocks <% ... %> (not expression blocks <%= ... %>) and whitespace
+    // Regex to detect lines that contain ONLY code blocks <% ... %> (not expression blocks <%= ... %>) and whitespace.
+    // Uses (?:(?!%>).)* instead of .*? to prevent backtracking across %> boundaries,
+    // which would incorrectly match lines with text between code blocks (e.g. <% if (x) { %>text<% } %>).
     private static readonly Regex StandaloneCodeLineRegex = new(
-        @"^[ \t]*(?:<%(?!=).*?%>[ \t]*)+$",
+        @"^[ \t]*(?:<%(?!=)(?:(?!%>).)*%>[ \t]*)+$",
+        RegexOptions.Compiled);
+
+    // Regex to detect split code block openings: lines that are just <% (not <%=) with optional whitespace.
+    // These are the opening half of a code block that spans multiple lines, where %> is on a subsequent line.
+    // The leading whitespace should not be emitted as template output.
+    private static readonly Regex SplitCodeOpenRegex = new(
+        @"^[ \t]*<%(?!=)[ \t]*$",
         RegexOptions.Compiled);
 
     /// <summary>
     /// Removes trailing newlines from lines that contain only code blocks and whitespace.
     /// This prevents standalone code lines (like &lt;% if (x) { %&gt;) from injecting blank lines.
+    /// Also handles split code block boundaries (lines that are just &lt;% or %&gt;) to prevent
+    /// their leading whitespace from being emitted as template output.
     /// </summary>
     internal static string StripStandaloneCodeLines(string content)
     {
@@ -101,7 +113,7 @@ public static class CstParser
         for (int i = 0; i < lines.Length; i++)
         {
             var line = lines[i].TrimEnd('\r');
-            if (StandaloneCodeLineRegex.IsMatch(line))
+            if (StandaloneCodeLineRegex.IsMatch(line) || SplitCodeOpenRegex.IsMatch(line))
             {
                 // Emit only the code block markers without surrounding whitespace/newline
                 sb.Append(line.Trim());
@@ -237,7 +249,7 @@ public static class CstParser
             }
             else
             {
-                result.Nodes.Add(new CodeBlockNode(tagContent.Trim()));
+                result.Nodes.Add(new CodeBlockNode(tagContent.Trim(), wasMultiLine: tagContent.Contains('\n')));
             }
 
             pos = tagEnd + 2;
@@ -275,7 +287,16 @@ public class ExpressionNode : TemplateNode
 public class CodeBlockNode : TemplateNode
 {
     public string Code { get; }
-    public CodeBlockNode(string code) => Code = code;
+    /// <summary>
+    /// True when the original &lt;% ... %&gt; block spanned multiple lines before trimming.
+    /// Used by StripCodeBlockNewlines to decide whether to consume the trailing newline.
+    /// </summary>
+    public bool WasMultiLine { get; }
+    public CodeBlockNode(string code, bool wasMultiLine = false)
+    {
+        Code = code;
+        WasMultiLine = wasMultiLine;
+    }
 }
 
 public class PropertyDirective
