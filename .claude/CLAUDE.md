@@ -12,3 +12,7 @@ Examples:
 - `feat: add user authentication`
 - `fix(api): handle null response from endpoint`
 - `chore: update dependencies`
+
+## Solution Files
+
+This repo uses `.slnx` (XML-based solution files), not the legacy `.sln` format.

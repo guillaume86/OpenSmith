@@ -50,6 +50,10 @@ for proj in "${template_projects[@]}"; do
   dotnet pack "$REPO_ROOT/$proj" -c Release -o "$OUT" -p:UseLocalProjects=false
 done
 
+# Pack codesmith-data packages (only OpenSmith.Data.Lite is packable)
+echo "==> Packing codesmith-data"
+dotnet pack "$REPO_ROOT/codesmith-data/CodeSmith.Data.slnx" -c Release -o "$OUT"
+
 echo "Done. Packages in $OUT:"
 ls -1 "$OUT"/*.nupkg
 

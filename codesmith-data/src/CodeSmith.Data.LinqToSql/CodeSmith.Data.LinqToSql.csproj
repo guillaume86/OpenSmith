@@ -9,6 +9,7 @@
 
   <!-- Pass /p:Standalone=true to build a minimal version without CodeSmith.Data dependency -->
   <PropertyGroup Condition="'$(Standalone)' == 'true'">
+    <PackageId>OpenSmith.Data.Lite</PackageId>
     <DefineConstants>$(DefineConstants);STANDALONE</DefineConstants>
   </PropertyGroup>
 
