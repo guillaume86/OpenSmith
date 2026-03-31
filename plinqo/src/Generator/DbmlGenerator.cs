@@ -399,22 +399,18 @@ public class DbmlGenerator
 
             if (isNew)
             {
-                string customReverseName = settings.ResolveReverseAssociationMemberName?.Invoke(name, foreignClass, primaryClass, prefix);
-                string propertyName;
-                if (customReverseName != null)
-                {
-                    propertyName = customReverseName;
-                }
-                else
+                string propertyName = settings.ResolveReverseAssociationMemberName?.Invoke(name, foreignClass, primaryClass, prefix);
+                if (propertyName == null)
                 {
                     propertyName = prefix + foreignClass;
-                    if (!isOneToOne)
-                    {
-                        if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
-                            propertyName += "List";
-                        else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
-                            propertyName = StringUtil.ToPlural(propertyName);
-                    }
+                }
+            
+                if (!isOneToOne)
+                {
+                    if (settings.AssociationNaming == AssociationNamingEnum.ListSuffix)
+                        propertyName += "List";
+                    else if (settings.AssociationNaming == AssociationNamingEnum.Plural)
+                        propertyName = StringUtil.ToPlural(propertyName);
                 }
 
                 primaryAssociation.Member = ToPropertyName(primaryTable.Type.Name, propertyName);
