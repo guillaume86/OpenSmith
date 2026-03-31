@@ -1,7 +1,5 @@
 <Project>
 
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
-
   <PropertyGroup>
     <OpenSmithVersion>1.0.0</OpenSmithVersion>
     <OpenSmithRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../opensmith/src'))</OpenSmithRoot>
