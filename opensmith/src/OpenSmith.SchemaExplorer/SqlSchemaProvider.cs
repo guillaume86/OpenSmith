@@ -64,7 +64,7 @@ public class SqlSchemaProvider
 
     // ── Raw-data records (returned by Fetch methods, consumed by Apply methods) ──
 
-    private record struct RawPrimaryKey(string SchemaName, string TableName, string ColumnName);
+    private record struct RawPrimaryKey(string SchemaName, string TableName, string ColumnName, int KeyOrdinal);
     private record struct RawUniqueColumn(string SchemaName, string TableName, string ColumnName);
     private record struct RawForeignKey(string FKName, string FKSchema, string FKTable, string FKColumn,
         string PKSchema, string PKTable, string PKColumn);
@@ -285,7 +285,8 @@ public class SqlSchemaProvider
         const string sql = """
             SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
                    t.name AS TableName,
-                   c.name AS ColumnName
+                   c.name AS ColumnName,
+                   ic.key_ordinal AS KeyOrdinal
             FROM sys.indexes i
             JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
             JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
@@ -298,7 +299,7 @@ public class SqlSchemaProvider
         using var cmd = new SqlCommand(sql, connection);
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
-            results.Add(new RawPrimaryKey(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+            results.Add(new RawPrimaryKey(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetByte(3)));
         return results;
     }
 
@@ -428,6 +429,9 @@ public class SqlSchemaProvider
     private static void ApplyPrimaryKeys(List<RawPrimaryKey> rows,
         Dictionary<string, TableSchema> tableIndex, Dictionary<string, ColumnSchema> columnIndex)
     {
+        // Track PK columns per table with their key_ordinal for reordering.
+        var pkColumnsByTable = new Dictionary<string, List<(ColumnSchema Column, int KeyOrdinal)>>();
+
         foreach (var row in rows)
         {
             var tableKey = $"{row.SchemaName}.{row.TableName}";
@@ -445,11 +449,51 @@ public class SqlSchemaProvider
             columnIndex.TryGetValue(colKey, out var sourceColumn);
 
             if (sourceColumn != null)
+            {
                 sourceColumn.IsPrimaryKeyMember = true;
+
+                if (!pkColumnsByTable.ContainsKey(tableKey))
+                    pkColumnsByTable[tableKey] = new List<(ColumnSchema, int)>();
+                pkColumnsByTable[tableKey].Add((sourceColumn, row.KeyOrdinal));
+            }
 
             var memberColumn = CreateMemberColumn(sourceColumn, row.ColumnName);
             memberColumn.IsPrimaryKeyMember = true;
             table.PrimaryKey.MemberColumns.Add(memberColumn);
+        }
+
+        // Reorder each table's Columns so PK columns appear in key_ordinal order
+        // while non-PK columns keep their original relative order.
+        foreach (var (tableKey, pkCols) in pkColumnsByTable)
+        {
+            if (pkCols.Count < 2)
+                continue; // single-column PK — nothing to reorder
+
+            var table = tableIndex[tableKey];
+            var pkSet = new HashSet<ColumnSchema>(pkCols.Select(p => p.Column));
+
+            // Check if PKs are already in key_ordinal order
+            var pkInTableOrder = table.Columns.Where(c => pkSet.Contains(c)).ToList();
+            var pkInKeyOrder = pkCols.OrderBy(p => p.KeyOrdinal).Select(p => p.Column).ToList();
+
+            bool alreadyCorrect = pkInTableOrder.SequenceEqual(pkInKeyOrder);
+            if (alreadyCorrect)
+                continue;
+
+            // Rebuild the Columns collection: replace PK columns with key_ordinal-ordered ones
+            var reordered = new List<ColumnSchema>(table.Columns.Count);
+            int pkIndex = 0;
+            foreach (var col in table.Columns)
+            {
+                if (pkSet.Contains(col))
+                    reordered.Add(pkInKeyOrder[pkIndex++]);
+                else
+                    reordered.Add(col);
+            }
+
+            table.Columns.Clear();
+            foreach (var col in reordered)
+                table.Columns.Add(col);
         }
     }
 
