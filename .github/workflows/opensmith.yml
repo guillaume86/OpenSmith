@@ -2,14 +2,14 @@ name: OpenSmith CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "opensmith/**"
       - "NuGet.config"
     tags:
       - "opensmith/v*"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "opensmith/**"
       - "NuGet.config"

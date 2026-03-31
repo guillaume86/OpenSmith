@@ -2,14 +2,14 @@ name: Plinqo CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "plinqo/**"
       - "NuGet.config"
     tags:
       - "plinqo/v*"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "plinqo/**"
       - "NuGet.config"

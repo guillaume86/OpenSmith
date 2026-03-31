@@ -2,14 +2,14 @@ name: CodeSmith.Data CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "codesmith-data/**"
       - "NuGet.config"
     tags:
       - "codesmith-data/v*"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "codesmith-data/**"
       - "NuGet.config"
