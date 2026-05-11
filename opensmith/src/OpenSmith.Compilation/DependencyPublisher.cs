@@ -219,10 +219,13 @@ public class DependencyPublisher
 
     private void RunDotnetPublish(string projectDir, string outputDir)
     {
+        var rid = RuntimeInformation.RuntimeIdentifier;
+        var args = $"publish -o \"{outputDir}\" -c Release --nologo -v minimal -r {rid} --self-contained false";
+
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"publish -o \"{outputDir}\" -c Release --nologo -v quiet -r {RuntimeInformation.RuntimeIdentifier} --self-contained false",
+            Arguments = args,
             WorkingDirectory = projectDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -237,14 +240,65 @@ public class DependencyPublisher
 
         if (process.ExitCode != 0)
         {
-            var message = $"dotnet publish failed (exit code {process.ExitCode}):\n{stderr}";
-            if (_verbose && !string.IsNullOrWhiteSpace(stdout))
-                message += $"\n{stdout}";
-            throw new InvalidOperationException(message);
+            var logPath = WritePublishLog(args, projectDir, rid, process.ExitCode, stdout, stderr);
+
+            var sb = new StringBuilder();
+            sb.Append("dotnet publish failed (exit code ").Append(process.ExitCode).AppendLine(").");
+            sb.Append("  Command:     dotnet ").AppendLine(args);
+            sb.Append("  Working dir: ").AppendLine(projectDir);
+            if (logPath != null)
+                sb.Append("  Log file:    ").AppendLine(logPath);
+            sb.AppendLine();
+            sb.AppendLine("--- stderr ---");
+            sb.AppendLine(string.IsNullOrWhiteSpace(stderr) ? "(empty)" : stderr.TrimEnd());
+            sb.AppendLine();
+            sb.AppendLine("--- stdout ---");
+            sb.AppendLine(string.IsNullOrWhiteSpace(stdout) ? "(empty)" : stdout.TrimEnd());
+            throw new InvalidOperationException(sb.ToString());
         }
     }
 
-    private static string GetPublishCacheDirectory(string fingerprint)
+    /// <summary>
+    /// Writes a diagnostic log file capturing the publish invocation and its output.
+    /// Returns the log path, or null if writing failed (best-effort — must not mask the real error).
+    /// </summary>
+    private string? WritePublishLog(string args, string projectDir, string rid, int exitCode, string stdout, string stderr)
+    {
+        try
+        {
+            var logDir = Path.Combine(GetOpenSmithBaseDir(), "logs");
+            Directory.CreateDirectory(logDir);
+
+            var fingerprintSuffix = string.IsNullOrEmpty(Fingerprint) ? "nofp" : Fingerprint[..8];
+            var fileName = $"publish-{DateTime.Now:yyyyMMdd-HHmmss}-{fingerprintSuffix}.log";
+            var logPath = Path.Combine(logDir, fileName);
+
+            var sb = new StringBuilder();
+            sb.Append("Command:     dotnet ").AppendLine(args);
+            sb.Append("Working dir: ").AppendLine(projectDir);
+            sb.Append("RID:         ").AppendLine(rid);
+            sb.Append("Fingerprint: ").AppendLine(Fingerprint ?? "(none)");
+            sb.Append("Exit code:   ").Append(exitCode).AppendLine();
+            sb.Append("Timestamp:   ").AppendLine(DateTime.Now.ToString("O"));
+            sb.AppendLine();
+            sb.AppendLine("--- stderr ---");
+            sb.AppendLine(stderr);
+            sb.AppendLine("--- stdout ---");
+            sb.AppendLine(stdout);
+
+            File.WriteAllText(logPath, sb.ToString());
+            return logPath;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Per-OS base directory for OpenSmith state (logs, dependency cache, etc.).
+    /// </summary>
+    internal static string GetOpenSmithBaseDir()
     {
         string baseDir;
         if (OperatingSystem.IsLinux())
@@ -262,8 +316,11 @@ public class DependencyPublisher
             baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         }
 
-        return Path.Combine(baseDir, "opensmith", "deps", fingerprint);
+        return Path.Combine(baseDir, "opensmith");
     }
+
+    private static string GetPublishCacheDirectory(string fingerprint)
+        => Path.Combine(GetOpenSmithBaseDir(), "deps", fingerprint);
 }
 
 public class OpenSmithManifest

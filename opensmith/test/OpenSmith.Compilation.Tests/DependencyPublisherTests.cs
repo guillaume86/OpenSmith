@@ -119,4 +119,48 @@ public class DependencyPublisherTests
 
         Assert.NotEqual(fpWith, fpWithout);
     }
+
+    [Fact]
+    public void PublishFailure_SurfacesPackageNameAndWritesLogFile()
+    {
+        // A non-existent feed points the restore at nothing, so the unresolvable
+        // package fails fast (no NuGet.org round-trip). The exact package name
+        // must appear in both the exception message and the on-disk log file.
+        var deadFeed = Path.Combine(_fixtureDir, "dead-feed");
+        File.WriteAllText(Path.Combine(_fixtureDir, "nuget.config"), $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="dead" value="{deadFeed}" />
+              </packageSources>
+            </configuration>
+            """);
+
+        const string missingPackage = "OpenSmith.DoesNotExist.PleaseFail";
+        var directives = new List<NuGetDirective>
+        {
+            new() { Package = missingPackage, Version = "1.0.0" },
+        };
+
+        var publisher = new DependencyPublisher(_fixtureDir, directives);
+        var logDir = Path.Combine(DependencyPublisher.GetOpenSmithBaseDir(), "logs");
+        var logsBefore = Directory.Exists(logDir)
+            ? Directory.GetFiles(logDir, "publish-*.log").ToHashSet()
+            : new HashSet<string>();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => publisher.Publish());
+
+        Assert.Contains("dotnet publish failed", ex.Message);
+        Assert.Contains(missingPackage, ex.Message);
+        Assert.Contains("Log file:", ex.Message);
+
+        Assert.True(Directory.Exists(logDir), $"Log directory should exist at {logDir}");
+        var newLog = Directory.GetFiles(logDir, "publish-*.log")
+            .Except(logsBefore)
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
+        Assert.NotNull(newLog);
+        Assert.Contains(missingPackage, File.ReadAllText(newLog!));
+    }
 }
