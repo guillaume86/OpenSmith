@@ -14,7 +14,8 @@
     }
   },
   "containerEnv": {
-    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
+    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal",
+    "IS_SANDBOX": "1"
   },
-  "postCreateCommand": "echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.bashrc && source ~/.bashrc && dotnet restore OpenSmith.All.slnx"
+  "postCreateCommand": "dotnet restore OpenSmith.All.slnx"
 }
