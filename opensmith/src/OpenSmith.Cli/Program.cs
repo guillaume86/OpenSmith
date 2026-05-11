@@ -1,3 +1,4 @@
+using System.Reflection;
 using OpenSmith.Compilation;
 
 namespace OpenSmith.Cli;
@@ -6,11 +7,20 @@ public class Program
 {
     public static int Main(string[] args)
     {
+        if (args.Contains("--version"))
+        {
+            var version = typeof(Program).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion ?? "unknown";
+            Console.WriteLine(version);
+            return 0;
+        }
+
         var verbose = args.Contains("--verbose");
         var useCache = !args.Contains("--no-cache");
         var clearCache = args.Contains("--clear-cache");
 
-        var knownFlags = new[] { "--verbose", "--no-cache", "--clear-cache" };
+        var knownFlags = new[] { "--verbose", "--no-cache", "--clear-cache", "--version" };
         var cspPath = args.FirstOrDefault(a => !knownFlags.Contains(a));
 
         if (clearCache)
@@ -24,7 +34,7 @@ public class Program
 
         if (cspPath == null)
         {
-            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose] [--no-cache] [--clear-cache]");
+            Console.Error.WriteLine("Usage: opensmith <path-to-csp-file> [--verbose] [--no-cache] [--clear-cache] [--version]");
             return 1;
         }
 
