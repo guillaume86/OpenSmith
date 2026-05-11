@@ -240,7 +240,8 @@ public class DependencyPublisher
 
         if (process.ExitCode != 0)
         {
-            var logPath = WritePublishLog(args, projectDir, rid, process.ExitCode, stdout, stderr);
+            var requested = FormatRequestedPackages();
+            var logPath = WritePublishLog(args, projectDir, rid, process.ExitCode, stdout, stderr, requested);
 
             var sb = new StringBuilder();
             sb.Append("dotnet publish failed (exit code ").Append(process.ExitCode).AppendLine(").");
@@ -248,6 +249,12 @@ public class DependencyPublisher
             sb.Append("  Working dir: ").AppendLine(projectDir);
             if (logPath != null)
                 sb.Append("  Log file:    ").AppendLine(logPath);
+            if (requested != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine("--- packages requested ---");
+                sb.AppendLine(requested);
+            }
             sb.AppendLine();
             sb.AppendLine("--- stderr ---");
             sb.AppendLine(string.IsNullOrWhiteSpace(stderr) ? "(empty)" : stderr.TrimEnd());
@@ -258,11 +265,21 @@ public class DependencyPublisher
         }
     }
 
+    private string? FormatRequestedPackages()
+    {
+        if (_nugetDirectives.Count == 0)
+            return null;
+        var sb = new StringBuilder();
+        foreach (var d in _nugetDirectives)
+            sb.Append("  ").Append(d.Package).Append(' ').AppendLine(d.Version);
+        return sb.ToString().TrimEnd();
+    }
+
     /// <summary>
     /// Writes a diagnostic log file capturing the publish invocation and its output.
     /// Returns the log path, or null if writing failed (best-effort — must not mask the real error).
     /// </summary>
-    private string? WritePublishLog(string args, string projectDir, string rid, int exitCode, string stdout, string stderr)
+    private string? WritePublishLog(string args, string projectDir, string rid, int exitCode, string stdout, string stderr, string? requestedPackages)
     {
         try
         {
@@ -280,6 +297,12 @@ public class DependencyPublisher
             sb.Append("Fingerprint: ").AppendLine(Fingerprint ?? "(none)");
             sb.Append("Exit code:   ").Append(exitCode).AppendLine();
             sb.Append("Timestamp:   ").AppendLine(DateTime.Now.ToString("O"));
+            if (requestedPackages != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine("--- packages requested ---");
+                sb.AppendLine(requestedPackages);
+            }
             sb.AppendLine();
             sb.AppendLine("--- stderr ---");
             sb.AppendLine(stderr);
